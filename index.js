@@ -1,4 +1,5 @@
 const express = require('express')
+const cors = require('cors');
 const app = express()
 const port = 3000
 const RippleAPI = require('ripple-lib').RippleAPI
@@ -7,6 +8,8 @@ const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
 const secret = process.env['FUNDING_SECRET']
 const amount = process.env['XRP_AMOUNT']
+
+app.use(cors());
 
 app.post('/accounts', (req, res) => {
   const api = new RippleAPI({
