@@ -12,6 +12,9 @@ const amount = process.env['XRP_AMOUNT']
 
 app.use(cors())
 
+let stats = {}
+let grandTotalTxs = 0
+let grandTotalRequests = 0
 let txCount = 0
 let txRequestCount = 0
 let api = null
@@ -87,6 +90,7 @@ let nextAvailableSeq = null
 
 app.post('/accounts', (req, res) => {
   txRequestCount++
+  grandTotalRequests++
 
   const reqId = (Math.random() + 1).toString(36).substr(2, 5)
   // const reqId = req.ip + req.secure ? ' s' : ' u'
@@ -130,17 +134,16 @@ app.post('/accounts', (req, res) => {
   }).then((result) => {
     checkForWarning(result)
 
-    if (result.engine_result === 'tesSUCCESS' || result.engine_result === 'terQUEUED') {
-      // || result.engine_result === 'terPRE_SEQ'
+    if (result.engine_result === 'tesSUCCESS' || result.engine_result === 'terQUEUED' || result.engine_result === 'terPRE_SEQ') {
       console.log(`${reqId}| Funded ${account.address} with ${amount} XRP (${result.engine_result})`)
       res.send({
         account,
         balance: Number(amount)
       })
       txCount++
-    } else if (result.engine_result === 'tefPAST_SEQ' || result.engine_result === 'terPRE_SEQ') {
+      grandTotalTxs++
+    } else if (result.engine_result === 'tefPAST_SEQ') {
       // occurs when we re-connect to a different rippled server
-      //???
       console.log(`${reqId}| Failed to fund ${account.address} with ${amount} XRP (${result.engine_result})`)
       res.status(503).send({
         error: 'Failed to fund account. Try again later',
@@ -151,13 +154,12 @@ app.post('/accounts', (req, res) => {
       getSequenceFromAccountInfo({reqId, shouldAdvanceSequence: false})
     } else {
       console.log(`${reqId}| Unrecognized failure to fund ${account.address} with ${amount} XRP (${result.engine_result})`)
+      console.log(result)
       res.status(503).send({
         error: 'Failed to fund account',
         account
       })
       // TODO: Look for this in the logs
-      console.log(`${reqId}| Setting nextAvailableSeq=null`)
-      nextAvailableSeq = null
     }
   }).catch(err => {
     console.log(`${reqId}| ${err}`)
@@ -213,11 +215,8 @@ function getSequenceFromAccountInfo(options) {
         nextAvailableSeq = sequence + 1
       }
     } else if (nextAvailableSeq > sequence) {
-      console.log(`${reqId}| WARNING: nextAvailableSeq=${nextAvailableSeq} > sequence=${sequence}. Some prior tx likely was not applied. Setting nextAvailableSeq=${options.shouldAdvanceSequence ? sequence : sequence + 1}.`)
-      nextAvailableSeq = sequence
-      // TODO: consider setting nextAvailableSeq=null
       if (options.shouldAdvanceSequence === true) {
-        // sequence = nextAvailableSeq
+        sequence = nextAvailableSeq
         nextAvailableSeq++
       }
     } else if (nextAvailableSeq < sequence) {
@@ -247,13 +246,13 @@ app.get('/info', (req, res) => {
       const processUptime = process.uptime()
       const osUptime = os.uptime()
       res.send({
-        faucetVersion: '0.0.2',
         processUptime,
         processUptimeHhMmSs: format(processUptime),
         osUptime,
         osUptimeHhMmSs: format(osUptime),
         rippled: info,
-        fee
+        fee,
+        stats: Object.assign({}, stats, {grandTotalTxs, grandTotalRequests})
       })
     })
   }).catch(e => {
@@ -293,7 +292,7 @@ app.get('/status', (req, res) => {
       const osUptime = os.uptime()
       const text = `*XRP Test Net Faucet:* https://developers.ripple.com/xrp-test-net-faucet.html
 *Uptime:* ${format(processUptime)}
-Since startup, I have received *${txRequestCount} requests* and sent *${txCount} transactions*.
+Since startup, I have received *${grandTotalRequests} requests* and sent *${grandTotalTxs} transactions*.
 *rippled* buildVersion: ${info.buildVersion}
 > completeLedgers: ${info.completeLedgers}
 > loadFactor: ${info.loadFactor}
@@ -333,7 +332,15 @@ setInterval(() => {
   if (txRequestCount > peakRequests) {
     peakRequests = txRequestCount
   }
-  console.log(`[TPS] success=${txCount}, tps=${(txCount / 60).toFixed(1)}, peak=${peak}, requests=${txRequestCount}, rps=${(txRequestCount / 60).toFixed(1)}, peakRequests=${peakRequests}, success%=${((txCount / txRequestCount) * 100).toFixed(1)}%, success_peak/request_peak=${((peak / peakRequests) * 100).toFixed(1)}%`)
+  stats.txCount = txCount
+  stats.tps = (txCount / 60).toFixed(1)
+  stats.peak = peak
+  stats.requests = txRequestCount
+  stats.requests_per_sec = (txRequestCount / 60).toFixed(1)
+  stats.peakRequests = peakRequests
+  stats.success_pct = ((txCount / txRequestCount) * 100).toFixed(1)
+  stats.success_peak_divby_request_peak_pct = ((peak / peakRequests) * 100).toFixed(1)
+  console.log(stats)
   txCount = 0
   txRequestCount = 0
 }, 60 * 1000)
