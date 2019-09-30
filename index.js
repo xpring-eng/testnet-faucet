@@ -92,7 +92,9 @@ app.post('/accounts', (req, res) => {
   // const reqId = req.ip + req.secure ? ' s' : ' u'
 
   createRippleAPI()
-  const account = api.generateAddress()
+  const account = api.generateAddress({
+    test: true
+  })
   console.log(`${reqId}| Generated new account: ${account.address}`)
 
   api.connect().then(() => {
