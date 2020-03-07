@@ -4,6 +4,7 @@ const cors = require('cors')
 const app = express()
 const port = process.env['PORT']
 const RippleAPI = require('ripple-lib').RippleAPI
+const addressCodec = require('ripple-address-codec')
 
 const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
@@ -11,6 +12,7 @@ const secret = process.env['FUNDING_SECRET']
 const amount = process.env['XRP_AMOUNT']
 
 app.use(cors())
+app.use(express.json())
 
 let txCount = 0
 let txRequestCount = 0
@@ -58,15 +60,15 @@ function createRippleAPI() {
   } else {
     console.log('no _ws yet')
   }
-  
+
   api.on('error', (errorCode, errorMessage) => {
     console.log('RippleAPI error: ' + errorCode + ': ' + errorMessage)
   })
-  
+
   api.on('connected', () => {
     console.log('RippleAPI connected')
   })
-  
+
   api.on('disconnected', (code) => {
     // code - [close code](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent) sent by the server
     // will be 1000 if this was normal closure
@@ -91,87 +93,130 @@ app.post('/accounts', (req, res) => {
   const reqId = (Math.random() + 1).toString(36).substr(2, 5)
   // const reqId = req.ip + req.secure ? ' s' : ' u'
 
-  createRippleAPI()
-  const account = api.generateAddress({
-    test: true
-  })
-  console.log(`${reqId}| Generated new account: ${account.address}`)
+  try {
+    createRippleAPI()
+    let account
+    if (req.body.destination) {
+      if (api.isValidAddress(req.body.destination)) {
+        let xAddress
+        let classicAddress
+        let tag
 
-  api.connect().then(() => {
-    console.log(`${reqId}| (connected)`)
-    if (nextAvailableSeq) {
-      // next tx should use the next seq
-      nextAvailableSeq++
-      return nextAvailableSeq - 1
-    } else {
-      return getSequenceFromAccountInfo({reqId, shouldAdvanceSequence: true})
-    }
-  }).then(sequence => {
-    console.log(`${reqId}| Preparing payment with destination=${account.address}, sequence: ${sequence}`)
-    return api.preparePayment(address, {
-      source: {
-        address: address,
-        maxAmount: {
-          value: amount,
-          currency: 'XRP'
+        if (req.body.destination.startsWith('T')) {
+          const t = addressCodec.xAddressToClassicAddress(req.body.destination)
+          xAddress = req.body.destination
+          classicAddress = t.classicAddress
+          tag = t.tag
+        } else {
+          xAddress = addressCodec.classicAddressToXAddress(req.body.destination, false, true)
+          classicAddress = req.body.destination
         }
-      },
-      destination: {
-        address: account.address,
-        amount: {
-          value: amount,
-          currency: 'XRP'
+        account = {
+          xAddress,
+          classicAddress,
+          address: classicAddress,
+          tag
+        }
+      } else {
+        return res.status(400).send({
+          error: 'Invalid destination'
+        })
+      }
+      console.log(`${reqId}| User-specified destination: ${account.xAddress}`)
+    } else {
+      account = api.generateAddress({
+        test: true
+      })
+      console.log(`${reqId}| Generated new account: ${account.address}`)
+    }
+
+    api.connect().then(() => {
+      console.log(`${reqId}| (connected)`)
+      if (nextAvailableSeq) {
+        // next tx should use the next seq
+        nextAvailableSeq++
+        return nextAvailableSeq - 1
+      } else {
+        return getSequenceFromAccountInfo({reqId, shouldAdvanceSequence: true})
+      }
+    }).then(sequence => {
+      console.log(`${reqId}| Preparing payment with destination=${account.address}, sequence: ${sequence}`)
+      const payment = {
+        source: {
+          address: address,
+          maxAmount: {
+            value: amount,
+            currency: 'XRP'
+          }
+        },
+        destination: {
+          address: account.address,
+          amount: {
+            value: amount,
+            currency: 'XRP'
+          }
         }
       }
-    }, {maxLedgerVersionOffset: 5, sequence})
-  }).then(prepared => {
-    checkForWarning(prepared)
+      if (account.tag) payment.destination.tag = account.tag
+      return api.preparePayment(address, payment, {maxLedgerVersionOffset: 5, sequence})
+    }).then(prepared => {
+      checkForWarning(prepared)
 
-    const {signedTransaction} = api.sign(prepared.txJSON, secret)
-    return api.submit(signedTransaction)
-  }).then((result) => {
-    checkForWarning(result)
+      const {signedTransaction} = api.sign(prepared.txJSON, secret)
+      return api.submit(signedTransaction)
+    }).then((result) => {
+      checkForWarning(result)
 
-    if (result.engine_result === 'tesSUCCESS' || result.engine_result === 'terQUEUED') {
-      // || result.engine_result === 'terPRE_SEQ'
-      console.log(`${reqId}| Funded ${account.address} with ${amount} XRP (${result.engine_result})`)
-      res.send({
-        account,
-        balance: Number(amount)
-      })
-      txCount++
-    } else if (result.engine_result === 'tefPAST_SEQ' || result.engine_result === 'terPRE_SEQ') {
-      // occurs when we re-connect to a different rippled server
-      //???
-      console.log(`${reqId}| Failed to fund ${account.address} with ${amount} XRP (${result.engine_result})`)
-      res.status(503).send({
-        error: 'Failed to fund account. Try again later',
+      if (result.engine_result === 'tesSUCCESS' || result.engine_result === 'terQUEUED') {
+        // || result.engine_result === 'terPRE_SEQ'
+        console.log(`${reqId}| Funded ${account.address} with ${amount} XRP (${result.engine_result})`)
+        const response = {
+          account,
+          amount: Number(amount)
+        }
+        if (!req.body.destination) {
+          response.balance = Number(amount)
+        }
+        res.send(response)
+        txCount++
+      } else if (result.engine_result === 'tefPAST_SEQ' || result.engine_result === 'terPRE_SEQ') {
+        // occurs when we re-connect to a different rippled server
+        //???
+        console.log(`${reqId}| Failed to fund ${account.address} with ${amount} XRP (${result.engine_result})`)
+        res.status(503).send({
+          error: 'Failed to fund account. Try again later',
+          account
+        })
+
+        // advance cached sequence if needed:
+        getSequenceFromAccountInfo({reqId, shouldAdvanceSequence: false})
+      } else {
+        console.log(`${reqId}| Unrecognized failure to fund ${account.address} with ${amount} XRP (${result.engine_result})`)
+        res.status(503).send({
+          error: 'Failed to fund account',
+          account
+        })
+        // TODO: Look for this in the logs
+        console.log(`${reqId}| Setting nextAvailableSeq=null`)
+        nextAvailableSeq = null
+      }
+    }).catch(err => {
+      console.log(`${reqId}| ${err}`)
+      // [DisconnectedError(websocket was closed)]
+      // from prepare* call
+      res.status(500).send({
+        error: 'Unable to fund account. Server load is too high. Try again later',
         account
       })
-
-      // advance cached sequence if needed:
-      getSequenceFromAccountInfo({reqId, shouldAdvanceSequence: false})
-    } else {
-      console.log(`${reqId}| Unrecognized failure to fund ${account.address} with ${amount} XRP (${result.engine_result})`)
-      res.status(503).send({
-        error: 'Failed to fund account',
-        account
-      })
-      // TODO: Look for this in the logs
-      console.log(`${reqId}| Setting nextAvailableSeq=null`)
       nextAvailableSeq = null
-    }
-  }).catch(err => {
-    console.log(`${reqId}| ${err}`)
-    // [DisconnectedError(websocket was closed)]
-    // from prepare* call
-    res.status(500).send({
-      error: 'Unable to fund account. Server load is too high. Try again later',
-      account
+      resetRippleAPI(reqId)
     })
-    nextAvailableSeq = null
-    resetRippleAPI(reqId)
-  })
+  } catch (e) {
+    console.log('/accounts error:', e)
+    res.status(500).send({
+      error: 'Internal Server Error'
+    })
+  }
 })
 
 // required:
@@ -305,7 +350,7 @@ Since startup, I have received *${txRequestCount} requests* and sent *${txCount}
 > hostID: ${info.hostID}
 > open_ledger_fee: ${fee.drops.open_ledger_fee} drops
 > expected_ledger_size: ${fee.expected_ledger_size}
-Full info: https://faucet.altnet.rippletest.net/info` 
+Full info: https://faucet.altnet.rippletest.net/info`
       res.send({
     "response_type": "in_channel",
     "text": text
