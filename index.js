@@ -9,7 +9,8 @@ const addressCodec = require('ripple-address-codec')
 const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
 const secret = process.env['FUNDING_SECRET']
-const amount = process.env['XRP_AMOUNT']
+const defaultAmount = process.env['XRP_AMOUNT']
+const MAX_AMOUNT = '1000000'
 
 app.use(cors())
 app.use(express.json())
@@ -128,6 +129,24 @@ app.post('/accounts', (req, res) => {
         test: true
       })
       console.log(`${reqId}| Generated new account: ${account.address}`)
+    }
+
+    let amount = defaultAmount
+    if (req.body.xrpAmount) {
+      // Disallows fractional XRP
+      if (!req.body.xrpAmount.match(/^\d+$/)) {
+        return res.status(400).send({
+          error: 'Invalid amount',
+          detail: 'Must be an integer'
+        })
+      }
+      let requestedAmountNumber = Number(req.body.xrpAmount)
+      if (requestedAmountNumber < 0 || requestedAmountNumber > MAX_AMOUNT || typeof requestedAmountNumber !== 'number') {
+        return res.status(400).send({
+          error: 'Invalid amount'
+        })
+      }
+      amount = requestedAmountNumber.toString()
     }
 
     api.connect().then(() => {
@@ -337,10 +356,12 @@ app.get('/status', (req, res) => {
 
       console.log('Returning /status - ledgerVersion: ' + info.validatedLedger.ledgerVersion + ', age: ' + info.validatedLedger.age + ', expected_ledger_size: ' + fee.expected_ledger_size + ', open_ledger_fee: ' + fee.drops.open_ledger_fee + ', hostID: ' + info.hostID)
       const processUptime = process.uptime()
-      const osUptime = os.uptime()
-      const text = `*XRP Test Net Faucet:* https://developers.ripple.com/xrp-test-net-faucet.html
+
+// broken - showing 0
+// Since startup, I have received *${txRequestCount} requests* and sent *${txCount} transactions*.
+
+      const text = `*XRP Test Net Faucet:* https://xrpl.org/xrp-testnet-faucet.html
 *Uptime:* ${format(processUptime)}
-Since startup, I have received *${txRequestCount} requests* and sent *${txCount} transactions*.
 *rippled* buildVersion: ${info.buildVersion}
 > completeLedgers: ${info.completeLedgers}
 > loadFactor: ${info.loadFactor}
