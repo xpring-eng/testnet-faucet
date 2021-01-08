@@ -7,4 +7,3 @@ faucet:
   fundingAddr: null
   fundingSecret: null
   xrpAmount: 1000
-  
