@@ -1,0 +1,84 @@
+image:
+  name: alpine:3.11
+
+stages:
+  - publish
+  - staging
+  - deploy
+
+include:
+  - project: 'xpring/xpring-ci-templates'
+    file: '/templates/build_for_gcr.yml'
+
+variables:
+  GCR_PROJECT_ID: xpring-dev-sandbox
+  GCLOUD_PROJECT_ID: xpring-dev-sandbox
+  CLUSTER_NAME: poc1-cluster
+  CLUSTER_REGION: us-central1
+  RELEASE_NAME: testnet-faucet
+  RELEASE_ENV: dev
+
+# Build a docker image and push it to the GCR associated with $GCLOUD_PROJECT_ID
+build/publish:
+  stage: publish
+  extends: .publish
+  variables:
+    GCLOUD_PROJECT_ID: $GCR_PROJECT_ID
+
+deploy_faucet:
+  extends: .deploy
+  needs: ["build/publish"]
+  when: manual
+  script:
+    - helm upgrade --install --namespace ${RELEASE_NAME}-${RELEASE_ENV}
+        --set releaseEnv=$RELEASE_ENV
+        --set faucet.rippledUri="${rippledUri}"
+        --set faucet.fundingAddr="${FUNDING_ADDR}"
+        --set faucet.fundingSecret="${FUNDING_SECRET}"
+        --set faucetng.domainName="${FAUCETNG_DNS}"
+        --set faucetng.proxiedService="http://${RELEASE_NAME}-${RELEASE_ENV}-faucet:3000"
+        ${RELEASE_NAME}-${RELEASE_ENV} ./charts
+
+###################### STAGING DEPLOYMENTS ######################
+
+.deploy_to_stg:
+  stage: staging
+  extends: .deploy_faucet
+  variables:
+    GCLOUD_PROJECT_ID: xpring-testnet
+    CLUSTER_NAME: xpring-testnet-cluster01
+    CLUSTER_REGION: us-central1
+
+deploy to testnet stg:
+  stage: staging
+  extends: .deploy_to_stg
+  variables:
+    RELEASE_ENV: stg-testnet
+
+deploy to devnet stg:
+  stage: staging
+  extends: .deploy_to_stg
+  variables:
+    RELEASE_ENV: stg-devnet
+
+###################### PRODUCTION DEPLOYMENTS ######################
+
+.deploy_to_prod:
+  stage: deploy
+  extends: .deploy_faucet
+  variables:
+    GCLOUD_PROJECT_ID: xpring-testnet
+    CLUSTER_NAME: xpring-testnet-cluster01
+    CLUSTER_REGION: us-central1
+
+deploy to testnet prod:
+  stage: deploy
+  extends: .deploy_to_prod
+  variables:
+    RELEASE_ENV: prod-testnet
+
+deploy to devnet prod:
+  stage: deploy
+  extends: .deploy_to_prod
+  variables:
+    RELEASE_ENV: prod-devnet
