@@ -1,0 +1,62 @@
+{{ $defaultAppName := printf "%s" .Release.Name }}
+{{ $fullAppName := default $defaultAppName .Values.fullNameOverride }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $fullAppName }}-faucet-secret
+type: Opaque
+data:
+  NODE_ENV: {{ .Values.faucet.nodeEnv | b64enc }}
+  PORT: {{ .Values.faucet.port | toString  | b64enc }}
+  RIPPLED_URI: {{ .Values.faucet.rippledUri | b64enc }}
+  FUNDING_ADDRESS: {{ .Values.faucet.fundingAddr | b64enc }}
+  FUNDING_SECRET: {{ .Values.faucet.fundingSecret | b64enc }}
+  XRP_AMOUNT: {{ .Values.faucet.xrpAmount | toString  | b64enc }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullAppName }}-faucet
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ $fullAppName }}-faucet
+  ports:
+  - protocol: TCP
+    port: {{ .Values.faucet.port }}
+    targetPort: {{ .Values.faucet.port }}
+    name: public
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullAppName }}-faucet
+spec:
+  replicas: {{ .Values.faucet.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $fullAppName }}-faucet
+  template:
+    metadata:
+      annotations:
+        date: {{ now }}
+      labels:
+        app: {{ $fullAppName }}-faucet
+    spec:
+      containers:
+      - image: {{ .Values.faucet.image }}
+        name: {{ $fullAppName }}-faucet
+        envFrom:
+        - secretRef:
+            name: {{ $fullAppName }}-faucet-secret
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.faucet.port }}
+          name: public
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
