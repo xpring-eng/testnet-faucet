@@ -39,7 +39,7 @@ deploy_faucet:
         --set faucetng.proxiedService="http://${RELEASE_NAME}-${RELEASE_ENV}-faucet:3000"
         ${RELEASE_NAME}-${RELEASE_ENV} ./charts
 
-###################### STAGING DEPLOYMENTS ######################
+###################### STAGING DEPLOYMENTS #######################
 
 .deploy_to_stg:
   stage: staging
