@@ -61,7 +61,7 @@ deploy to devnet stg:
   variables:
     RELEASE_ENV: stg-devnet
 
-###################### PRODUCTION DEPLOYMENTS #######################
+###################### PRODUCTION DEPLOYMENTS ######################
 
 .deploy_to_prod:
   stage: deploy
