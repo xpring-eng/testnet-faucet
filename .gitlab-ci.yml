@@ -24,7 +24,7 @@ build/publish:
   variables:
     GCLOUD_PROJECT_ID: $GCR_PROJECT_ID
   script:
-    - git clone --single-branch --branch master https://github.com/xpring-eng/rippled-network-crawler.git
+    - git clone --single-branch --branch master https://github.com/xpring-eng/testnet-faucet.git
     - echo $GCP_SA > $GOOGLE_APPLICATION_CREDENTIALS
     - /usr/local/bin/executor --cache=true --context explorer --dockerfile explorer/Dockerfile
       --destination gcr.io/${GCLOUD_PROJECT_ID}/${RELEASE_NAME}:latest
