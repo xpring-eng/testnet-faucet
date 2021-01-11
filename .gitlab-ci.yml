@@ -54,7 +54,7 @@ deploy to testnet stg:
   extends: .deploy_to_stg
   variables:
     RELEASE_ENV: stg-testnet
-    FAUCET_ADDR: $FAUCET_ADDR_TEST_STG
+    FUNDING_ADDR: $FUNDING_ADDR_TEST_STG
     FUNDING_SECRET: $FUNDING_SECRET_TEST_STG
     FAUCETNG_DNS: $FAUCETNG_DNS_TEST_STG
     RIPPLED_URI: $RIPPLED_URI_TEST
@@ -64,7 +64,7 @@ deploy to devnet stg:
   extends: .deploy_to_stg
   variables:
     RELEASE_ENV: stg-devnet
-    FAUCET_ADDR: $FAUCET_ADDR_DEV_STG
+    FUNDING_ADDR: $FUNDING_ADDR_DEV_STG
     FUNDING_SECRET: $FUNDING_SECRET_DEV_STG
     FAUCETNG_DNS: $FAUCETNG_DNS_TEST_STG
     RIPPLED_URI: $RIPPLED_URI_DEV
@@ -84,7 +84,7 @@ deploy to testnet prod:
   extends: .deploy_to_prod
   variables:
     RELEASE_ENV: prod-testnet
-    FAUCET_ADDR: $FAUCET_ADDR_TEST_PROD
+    FUNDING_ADDR: $FUNDING_ADDR_TEST_PROD
     FUNDING_SECRET: $FUNDING_SECRET_TEST_PROD
     FAUCETNG_DNS: $FAUCETNG_DNS_TEST_PROD
     RIPPLED_URI: $RIPPLED_URI_TEST
@@ -94,7 +94,7 @@ deploy to devnet prod:
   extends: .deploy_to_prod
   variables:
     RELEASE_ENV: prod-devnet
-    FAUCET_ADDR: $FAUCET_ADDR_DEV_PROD
+    FUNDING_ADDR: $FUNDING_ADDR_DEV_PROD
     FUNDING_SECRET: $FUNDING_SECRET_DEV_PROD
     FAUCETNG_DNS: $FAUCETNG_DNS_DEV_PROD
     RIPPLED_URI: $RIPPLED_URI_DEV
