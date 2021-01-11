@@ -3,7 +3,6 @@ image:
 
 stages:
   - publish
-  - staging
   - deploy
 
 include:
@@ -42,7 +41,7 @@ deploy_faucet:
 ###################### STAGING DEPLOYMENTS #######################
 
 .deploy_to_stg:
-  stage: staging
+  stage: deploy
   extends: .deploy_faucet
   variables:
     GCLOUD_PROJECT_ID: xpring-testnet
@@ -50,7 +49,7 @@ deploy_faucet:
     CLUSTER_REGION: us-central1
 
 deploy to testnet stg:
-  stage: staging
+  stage: deploy
   extends: .deploy_to_stg
   variables:
     RELEASE_ENV: stg-testnet
@@ -60,7 +59,7 @@ deploy to testnet stg:
     RIPPLED_URI: $RIPPLED_URI_TEST
 
 deploy to devnet stg:
-  stage: staging
+  stage: deploy
   extends: .deploy_to_stg
   variables:
     RELEASE_ENV: stg-devnet
