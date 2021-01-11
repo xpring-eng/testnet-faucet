@@ -32,7 +32,7 @@ deploy_faucet:
   script:
     - helm upgrade --install --namespace ${RELEASE_NAME}-${RELEASE_ENV}
         --set releaseEnv=$RELEASE_ENV
-        --set faucet.rippledUri="${rippledUri}"
+        --set faucet.rippledUri="${RIPPLED_URI}"
         --set faucet.fundingAddr="${FUNDING_ADDR}"
         --set faucet.fundingSecret="${FUNDING_SECRET}"
         --set faucetng.domainName="${FAUCETNG_DNS}"
@@ -54,12 +54,20 @@ deploy to testnet stg:
   extends: .deploy_to_stg
   variables:
     RELEASE_ENV: stg-testnet
+    FAUCET_ADDR: $FAUCET_ADDR_TEST_STG
+    FUNDING_SECRET: $FUNDING_SECRET_TEST_STG
+    FAUCETING_DNS: $FAUCETING_DNS_TEST_STG
+    RIPPLED_URI: $RIPPLED_URI_TEST
 
 deploy to devnet stg:
   stage: staging
   extends: .deploy_to_stg
   variables:
     RELEASE_ENV: stg-devnet
+    FAUCET_ADDR: $FAUCET_ADDR_DEV_STG
+    FUNDING_SECRET: $FUNDING_SECRET_DEV_STG
+    FAUCETING_DNS: $FAUCETING_DNS_TEST_STG
+    RIPPLED_URI: $RIPPLED_URI_DEV
 
 ###################### PRODUCTION DEPLOYMENTS ######################
 
@@ -76,9 +84,17 @@ deploy to testnet prod:
   extends: .deploy_to_prod
   variables:
     RELEASE_ENV: prod-testnet
+    FAUCET_ADDR: $FAUCET_ADDR_TEST_PROD
+    FUNDING_SECRET: $FUNDING_SECRET_TEST_PROD
+    FAUCETING_DNS: $FAUCETING_DNS_TEST_PROD
+    RIPPLED_URI: $RIPPLED_URI_TEST
 
 deploy to devnet prod:
   stage: deploy
   extends: .deploy_to_prod
   variables:
     RELEASE_ENV: prod-devnet
+    FAUCET_ADDR: $FAUCET_ADDR_DEV_PROD
+    FUNDING_SECRET: $FUNDING_SECRET_DEV_PROD
+    FAUCETING_DNS: $FAUCETING_DNS_DEV_PROD
+    RIPPLED_URI: $RIPPLED_URI_DEV
