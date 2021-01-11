@@ -29,7 +29,7 @@ build/publish:
     - /usr/local/bin/executor --cache=true --context explorer --dockerfile explorer/Dockerfile
       --destination gcr.io/${GCLOUD_PROJECT_ID}/${RELEASE_NAME}:latest
 
-deploy_faucet:
+.deploy_faucet:
   extends: .deploy
   needs: ["build/publish"]
   when: manual
