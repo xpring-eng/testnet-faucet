@@ -25,6 +25,7 @@ build/publish:
   variables:
     GCLOUD_PROJECT_ID: $GCR_PROJECT_ID
   script:
+    - apk add git
     - git clone --single-branch --branch master https://github.com/xpring-eng/testnet-faucet.git
     - echo $GCP_SA > $GOOGLE_APPLICATION_CREDENTIALS
     - /usr/local/bin/executor --cache=true --context explorer --dockerfile explorer/Dockerfile
