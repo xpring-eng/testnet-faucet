@@ -27,6 +27,7 @@ build/publish:
     GCLOUD_PROJECT_ID: $GCR_PROJECT_ID
   script:
     - git clone --single-branch --branch master https://github.com/xpring-eng/testnet-faucet.git
+    - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/kaniko-secret.json
     - echo $GCP_SA > $GOOGLE_APPLICATION_CREDENTIALS
     - /usr/local/bin/executor --cache=true --context testnet-faucet --dockerfile testnet-faucet/Dockerfile
       --destination gcr.io/${GCLOUD_PROJECT_ID}/${RELEASE_NAME}:latest
