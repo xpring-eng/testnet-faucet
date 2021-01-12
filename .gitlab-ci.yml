@@ -22,13 +22,13 @@ build/publish:
   stage: publish
   extends: .publish
   when: manual
+  image: gcr.io/xpring-dev-sandbox/xpring_util_image:0.0.4
   variables:
     GCLOUD_PROJECT_ID: $GCR_PROJECT_ID
   script:
-    - apk add git
     - git clone --single-branch --branch master https://github.com/xpring-eng/testnet-faucet.git
     - echo $GCP_SA > $GOOGLE_APPLICATION_CREDENTIALS
-    - /usr/local/bin/executor --cache=true --context explorer --dockerfile explorer/Dockerfile
+    - /usr/local/bin/executor --cache=true --context testnet-faucet --dockerfile testnet-faucet/Dockerfile
       --destination gcr.io/${GCLOUD_PROJECT_ID}/${RELEASE_NAME}:latest
 
 .deploy_faucet:
