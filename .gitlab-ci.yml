@@ -21,6 +21,7 @@ variables:
 build/publish:
   stage: publish
   extends: .publish
+  when: manual
   variables:
     GCLOUD_PROJECT_ID: $GCR_PROJECT_ID
   script:
