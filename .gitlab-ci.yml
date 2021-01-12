@@ -37,6 +37,8 @@ build/publish:
   needs: ["build/publish"]
   when: manual
   script:
+    - mkdir dependency_charts
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.in.xpring.tech/xpring-eng/xpring_nginx.git dependency_charts/xpring_nginx
     - helm upgrade --install --namespace ${RELEASE_NAME}-${RELEASE_ENV}
         --set releaseEnv=$RELEASE_ENV
         --set faucet.rippledUri="${RIPPLED_URI}"
