@@ -7,3 +7,8 @@ faucet:
   fundingAddr: null
   fundingSecret: null
   xrpAmount: 1000
+faucetng:
+  install: true
+  releaseImage: gcr.io/xpring-dev-sandbox/xpring_nginx:0.0.3
+  fullNameOverride: faucetng-sslnginx
+  replicaCount: 1
