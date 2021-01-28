@@ -1,0 +1,111 @@
+image:
+  name: alpine:3.11
+
+stages:
+  - publish
+  - deploy
+
+include:
+  - project: 'xpring/xpring-ci-templates'
+    file: '/templates/build_for_gcr.yml'
+
+variables:
+  GCR_PROJECT_ID: xpring-dev-sandbox
+  GCLOUD_PROJECT_ID: xpring-dev-sandbox
+  CLUSTER_NAME: poc1-cluster
+  CLUSTER_REGION: us-central1
+  RELEASE_NAME: testnet-faucet
+  RELEASE_ENV: dev
+
+# Build a docker image and push it to the GCR associated with $GCLOUD_PROJECT_ID
+build/publish:
+  stage: publish
+  extends: .publish
+  when: manual
+  image: gcr.io/xpring-dev-sandbox/xpring_util_image:0.0.4
+  variables:
+    GCLOUD_PROJECT_ID: $GCR_PROJECT_ID
+  script:
+    - git clone --single-branch --branch master https://github.com/xpring-eng/testnet-faucet.git
+    - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/kaniko-secret.json
+    - echo $GCP_SA > $GOOGLE_APPLICATION_CREDENTIALS
+    - /usr/local/bin/executor --cache=true --context testnet-faucet --dockerfile testnet-faucet/Dockerfile
+      --destination gcr.io/${GCLOUD_PROJECT_ID}/${RELEASE_NAME}:latest
+
+.deploy_faucet:
+  extends: .deploy
+  needs: ["build/publish"]
+  when: manual
+  script:
+    - mkdir dependency_charts
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.in.xpring.tech/xpring-eng/xpring_nginx.git dependency_charts/xpring_nginx
+    - kubectl create namespace ${RELEASE_NAME}-${RELEASE_ENV} || true
+    - helm dep update ./charts
+    - helm upgrade --install --namespace ${RELEASE_NAME}-${RELEASE_ENV}
+        --set releaseEnv=$RELEASE_ENV
+        --set faucet.rippledUri="${RIPPLED_URI}"
+        --set faucet.fundingAddr="${FUNDING_ADDR}"
+        --set faucet.fundingSecret="${FUNDING_SECRET}"
+        --set faucetng.domainName="${FAUCETNG_DNS}"
+        --set faucetng.proxiedService="http://${RELEASE_NAME}-${RELEASE_ENV}-faucet:3000"
+        ${RELEASE_NAME}-${RELEASE_ENV} ./charts
+
+###################### STAGING DEPLOYMENTS #######################
+
+.deploy_to_stg:
+  stage: deploy
+  extends: .deploy_faucet
+  variables:
+    GCLOUD_PROJECT_ID: xpring-testnet
+    CLUSTER_NAME: xpring-testnet-cluster01
+    CLUSTER_REGION: us-central1
+
+deploy to testnet stg:
+  stage: deploy
+  extends: .deploy_to_stg
+  variables:
+    RELEASE_ENV: stg-testnet
+    FUNDING_ADDR: $FUNDING_ADDR_TEST_STG
+    FUNDING_SECRET: $FUNDING_SECRET_TEST_STG
+    FAUCETNG_DNS: $FAUCETNG_DNS_TEST_STG
+    RIPPLED_URI: $RIPPLED_URI_TEST
+
+deploy to devnet stg:
+  stage: deploy
+  extends: .deploy_to_stg
+  variables:
+    RELEASE_ENV: stg-devnet
+    FUNDING_ADDR: $FUNDING_ADDR_DEV_STG
+    FUNDING_SECRET: $FUNDING_SECRET_DEV_STG
+    FAUCETNG_DNS: $FAUCETNG_DNS_DEV_STG
+    RIPPLED_URI: $RIPPLED_URI_DEV
+
+###################### PRODUCTION DEPLOYMENTS ######################
+
+.deploy_to_prod:
+  stage: deploy
+  extends: .deploy_faucet
+  variables:
+    GCLOUD_PROJECT_ID: xpring-testnet
+    CLUSTER_NAME: xpring-testnet-cluster01
+    CLUSTER_REGION: us-central1
+
+deploy to testnet prod:
+  stage: deploy
+  extends: .deploy_to_prod
+  variables:
+    RELEASE_ENV: prod-testnet
+    FUNDING_ADDR: $FUNDING_ADDR_TEST_PROD
+    FUNDING_SECRET: $FUNDING_SECRET_TEST_PROD
+    FAUCETNG_DNS: $FAUCETNG_DNS_TEST_PROD
+    RIPPLED_URI: $RIPPLED_URI_TEST
+
+deploy to devnet prod:
+  stage: deploy
+  extends: .deploy_to_prod
+  variables:
+    RELEASE_ENV: prod-devnet
+    FUNDING_ADDR: $FUNDING_ADDR_DEV_PROD
+    FUNDING_SECRET: $FUNDING_SECRET_DEV_PROD
+    FAUCETNG_DNS: $FAUCETNG_DNS_DEV_PROD
+    RIPPLED_URI: $RIPPLED_URI_DEV

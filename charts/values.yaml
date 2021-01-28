@@ -1,0 +1,14 @@
+faucet:
+  image: gcr.io/xpring-dev-sandbox/testnet-faucet:latest
+  replicas: 1
+  nodeEnv: production
+  port: 3000
+  rippledUri: null
+  fundingAddr: null
+  fundingSecret: null
+  xrpAmount: 1000
+faucetng:
+  install: true
+  releaseImage: gcr.io/xpring-dev-sandbox/xpring_nginx:0.0.3
+  fullNameOverride: faucetng-sslnginx
+  replicaCount: 1
