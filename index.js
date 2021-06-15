@@ -309,17 +309,25 @@ app.get('/info', (req, res) => {
     return api.request('fee').then(fee => {
       checkForWarning(fee)
 
-      console.log('Returning /info - ledgerVersion: ' + info.validatedLedger.ledgerVersion + ', age: ' + info.validatedLedger.age + ', expected_ledger_size: ' + fee.expected_ledger_size + ', open_ledger_fee: ' + fee.drops.open_ledger_fee + ', hostID: ' + info.hostID)
-      const processUptime = process.uptime()
-      const osUptime = os.uptime()
-      res.send({
-        faucetVersion: '0.0.2',
-        processUptime,
-        processUptimeHhMmSs: format(processUptime),
-        osUptime,
-        osUptimeHhMmSs: format(osUptime),
-        rippled: info,
-        fee
+      return api.request('account_info', {
+        account: address,
+        strict: true,
+        ledger_index: 'current',
+        queue: true
+      }).then(account => {
+        console.log('Returning /info - ledgerVersion: ' + info.validatedLedger.ledgerVersion + ', age: ' + info.validatedLedger.age + ', expected_ledger_size: ' + fee.expected_ledger_size + ', open_ledger_fee: ' + fee.drops.open_ledger_fee + ', hostID: ' + info.hostID)
+        const processUptime = process.uptime()
+        const osUptime = os.uptime()
+        res.send({
+          faucetVersion: '0.0.2',
+          processUptime,
+          processUptimeHhMmSs: format(processUptime),
+          osUptime,
+          osUptimeHhMmSs: format(osUptime),
+          balance: account.account_data.Balance,
+          rippled: info,
+          fee
+        })
       })
     })
   }).catch(e => {
