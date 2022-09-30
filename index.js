@@ -239,8 +239,6 @@ app.post('/accounts', (req, res) => {
   }
 })
 
-
-
 // required:
 // - options.reqId
 // - options.shouldAdvanceSequence
