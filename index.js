@@ -174,7 +174,8 @@ app.post('/accounts', (req, res) => {
             value: amount,
             currency: 'XRP'
           }
-        }
+        },
+        memos: req.body.memos ? [...req.body.memos] : [],
       }
       if (account.tag) payment.destination.tag = account.tag
       return api.preparePayment(address, payment, {maxLedgerVersionOffset: 5, sequence})
