@@ -3,7 +3,7 @@ helm:
   minor_version: 1
   # patch_version: 9
   type: helm
-  chart_dir: charts
+  chart_dir: helm
   chart_name: testnet-faucet
   repo: oci://us-central1-docker.pkg.dev/cbdc-helm-repo/ripplex-helm-charts
 
