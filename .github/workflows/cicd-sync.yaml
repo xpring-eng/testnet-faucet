@@ -1,0 +1,87 @@
+name: CI/CD Workflow File Sync
+
+on:
+  push:
+    paths:
+      - '.cicd/**'
+      - '.github/workflows/cicd-sync.yaml'
+      - 'cicd.yaml'
+    branches:
+      - "**"
+    ignore-tags:
+      - '**'
+
+jobs:
+  cicd-sync:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xpring-eng/ripplex-builder-simple:0.1.32
+    steps:
+    - name: Checkout base repo
+      uses: actions/checkout@v3
+      with:
+        path: base_repo
+        token: ${{ secrets.SA_PAT_PUSH }}
+    - name: Get current project_dir
+      id: project_dir
+      run: |
+        echo "project_dir=$PWD" >> $GITHUB_OUTPUT
+        echo "project_dir=$PWD"
+    - name: Get current branch
+      id: branch
+      run: |
+        project_dir="${{ steps.project_dir.outputs.project_dir }}"
+        cd "${project_dir}/base_repo"
+        # Get all branches that contain the commit hash
+        branches=$(git branch -r --contains $GITHUB_SHA)
+        # Get the first branch in the list
+        current_branch=$(echo $branches | head -n1| awk '{$1=$1};1')
+        current_branch="${current_branch#origin/}"
+        echo "current_branch=${current_branch}" >> $GITHUB_OUTPUT
+        echo "current_branch=$current_branch"
+    - name: Get version from cicd.yaml
+      id: version
+      run: |
+        project_dir="${{ steps.project_dir.outputs.project_dir }}"
+        export version=$(yq e '.cicd.version' "${project_dir}/base_repo/cicd.yaml")
+        echo "cicd.version: $version"
+        if [ ! -n "${version}" ]; then
+          echo "Version is empty. Please add a cicd.version to your cicd.yaml file."
+          exit 1
+        else
+          echo "Version is $version"
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "version=$version"
+        fi
+    - name: Checkout cicd-scripts repo
+      uses: actions/checkout@v3
+      with:
+        repository: xpring-eng/ripplex-cicd-scripts
+        ref: ${{ steps.version.outputs.version }}
+        ssh-key: ${{ secrets.CICD_SSH_KEY }}
+        path: ripplex-cicd-scripts
+    - name: Sync files with rsync
+      run: |
+        project_dir="${{ steps.project_dir.outputs.project_dir }}"
+        cd "${project_dir}"
+        mkdir -p "${project_dir}/base_repo/.cicd"
+        rsync -avzr "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/.cicd/" "${project_dir}/base_repo/.cicd/"
+        rsync -avz "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/.github/workflows/cicd-sync.yaml" "${project_dir}/base_repo/.github/workflows/cicd-sync.yaml"
+        rsync -avz "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/build.sh" "${project_dir}/base_repo/build.sh"
+    - name: Commit changes
+      run: |
+        project_dir="${{ steps.project_dir.outputs.project_dir }}"
+        cd ${project_dir}/base_repo
+
+        if git diff --exit-code && git log --oneline .cicd >/dev/null 2>&1; then
+            echo "No changes found, skipping commit"
+        else
+            cd ${project_dir}/base_repo/
+            git config --global user.email "actions@github.com"
+            git config --global user.name "Github Actions Runner"
+            echo "git add .cicd .github/workflows/cicd-sync.yaml"
+            git add .cicd .github/workflows/cicd-sync.yaml build.sh
+            git commit -m "Updated .cicd files to version '${{ steps.version.outputs.version }}' on branch '${{ steps.branch.outputs.current_branch }}'"
+            echo "Updated .cicd files to version '${{ steps.version.outputs.version }}' on branch '${{ steps.branch.outputs.current_branch }}'"
+            git push
+        fi

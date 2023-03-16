@@ -1,0 +1,27 @@
+name: build-component
+
+on:
+  push:
+    tags: component-version/**
+
+jobs:
+  build-component:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xpring-eng/ripplex-builder:0.1.39
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Build Versioned Component
+        run: .cicd/jobs/build-component.sh
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_BUILD_GITHUB_TOKEN: ${{ secrets.DOCKER_BUILD_GITHUB_TOKEN }}
+          GCR_SA_JSON_RIPPLE: ${{ secrets.GCR_SA_JSON_RIPPLE }}
+          GCR_SA_JSON_RIPPLEPROD: ${{ secrets.GCR_SA_JSON_RIPPLEPROD }}
+          GCR_HELM_SA_JSON_RIPPLEPROD: ${{ secrets.GCR_HELM_SA_JSON_RIPPLEPROD }}
+          CI_GCP_CREDENTIALS: ${{ secrets.CI_GCP_CREDENTIALS }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
