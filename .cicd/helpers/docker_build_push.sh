@@ -32,10 +32,15 @@ echo "$(echo "${DOCKER_BUILD_ARGS_JSON}" | jq || "" )"
 
 header "Building Docker Image ${IMAGE_NAME}:${DOCKER_VERSION}"
 LAST_DIR=$PWD
-echo "cd to '${DOCKER_DIR}'"
-cd ${DOCKER_DIR}
+
 DOCKER_BUILD_ARGS=$(echo "${DOCKER_BUILD_ARGS}" | envsubst)
-docker build -t latest ${DOCKER_BUILD_ARGS} --build-arg DOCKER_BUILD_GITHUB_TOKEN .
+
+if [[ "${DOCKER_DIR}" == "." ]]; then
+    docker build -t latest ${DOCKER_BUILD_ARGS} --build-arg DOCKER_BUILD_GITHUB_TOKEN .
+else
+    docker build -t latest -f ${DOCKER_DIR} ${DOCKER_BUILD_ARGS} --build-arg DOCKER_BUILD_GITHUB_TOKEN .
+fi
+
 header "Tag and push imags to REGISTRIES: $REGISTRIES"
 for REGISTRY in $REGISTRIES; do
 	case ${REGISTRY} in
