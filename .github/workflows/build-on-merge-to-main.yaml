@@ -1,0 +1,162 @@
+name: Run script on release branch
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  file_changes:
+    runs-on: ubuntu-latest
+    container:
+        image: ghcr.io/xpring-eng/ripplex-builder:0.1.39
+    outputs:
+      app: ${{ steps.filter_changes.outputs.app }}
+      helm: ${{ steps.filter_changes.outputs.helm }}
+      branch_name: ${{ steps.create_and_push_branch.outputs.branch_name }}
+    steps:         
+      - name: Set safe dir
+        run: git config --system --add safe.directory /__w/ripplex-cicd-scripts/ripplex-cicd-scripts
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          set-safe-directory: true
+          token: ${{ secrets.SA_PAT_PUSH }}
+      
+      - name: Get branch name
+        run: echo "BRANCH_NAME=${GITHUB_HEAD_REF#feature/}" >> $GITHUB_ENV
+
+    
+      - name: Print branch name
+        run: echo ${{ env.BRANCH_NAME }} 
+
+      - name: Filter files
+        id: filter_changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            app:
+              - 'package.json'
+              - 'Dockerfile'
+              - 'index.js'
+            helm:
+              - 'helm/**'
+
+      - name: Set safe dir
+        run: git config --system --add safe.directory /__w/ripplex-cicd-scripts/ripplex-cicd-scripts
+
+      - name: Checkout repository
+        if: steps.filter_changes.outputs.app == 'true' || steps.filter_changes.outputs.helm == 'true' 
+        uses: actions/checkout@v3
+        with:
+          set-safe-directory: true
+          token: ${{ secrets.SA_PAT_PUSH }}
+      
+      - name: Get branch name
+        if:  steps.filter_changes.outputs.app == 'true'  || steps.filter_changes.outputs.helm == 'true'
+        run: echo "BRANCH_NAME=${GITHUB_HEAD_REF#feature/}" >> $GITHUB_ENV
+           
+      - name: Check if branch already exists
+        if: steps.filter_changes.outputs.app == 'true'  || steps.filter_changes.outputs.helm == 'true'
+        id: check_branch
+        run: |
+          if git ls-remote --exit-code --heads origin "release/${{ env.BRANCH_NAME }}" >/dev/null 2>&1; then
+            echo "branch_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "branch_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create release branch if not already existing
+        if: steps.check_branch.outputs.branch_exists == 'false'
+        run: |
+          echo "RELEASE_NAME=release/${{ env.BRANCH_NAME }}" >> $GITHUB_ENV
+
+      - name: Check if release branch with iterator already exists
+        if: steps.check_branch.outputs.branch_exists == 'true'
+        id: check_iterator
+        run: |
+          i=1
+          while git ls-remote --exit-code --heads origin "release/${{ env.BRANCH_NAME }}_${i}" >/dev/null 2>&1; do
+            i=$((i+1))
+          done
+          echo "iterator=${i}" >> $GITHUB_OUTPUT
+        
+      - name: Get release branch name with iterator
+        if: steps.check_branch.outputs.branch_exists == 'true'
+        run: |
+          echo "RELEASE_NAME=release/${{ env.BRANCH_NAME }}_${{ steps.check_iterator.outputs.iterator }}" >> $GITHUB_ENV
+
+      - name: Create release branch and push
+        if: steps.filter_changes.outputs.app == 'true'  || steps.filter_changes.outputs.helm == 'true'
+        id: create_and_push_branch
+        run: |
+          cd $GITHUB_WORKSPACE
+          git checkout -b ${{ env.RELEASE_NAME }}
+          git push --set-upstream origin ${{ env.RELEASE_NAME }}
+          echo "branch_name=${{ env.RELEASE_NAME }}" >> $GITHUB_OUTPUT
+
+  trigger_docker_build:
+    needs: file_changes
+    if: needs.file_changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xpring-eng/ripplex-builder:0.1.39
+    steps:
+      - name: Set safe dir
+        run: git config --system --add safe.directory /__w/ripplex-cicd-scripts/ripplex-cicd-scripts
+
+      - name: Checkout release branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.file_changes.outputs.branch_name }}
+          token: ${{ secrets.SA_PAT_PUSH }}
+    
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install --no-cache-dir -r requirements.txt
+        
+      - name: cd to new release branch
+        run: |
+          echo $GITHUB_WORKSPACE
+          cd $GITHUB_WORKSPACE
+      
+      - name: Trigger docker build
+        if: needs.file_changes.outputs.app == 'true'
+        run: |
+          git fetch --tags
+          ./build.sh release testnet_faucet
+
+  trigger_helm_build:
+    needs: file_changes
+    if: needs.file_changes.outputs.helm == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xpring-eng/ripplex-builder:0.1.39
+    steps:
+      - name: Set safe dir
+        run: git config --system --add safe.directory /__w/ripplex-cicd-scripts/ripplex-cicd-scripts
+
+      - name: Checkout release branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.file_changes.outputs.branch_name }}
+          token: ${{ secrets.SA_PAT_PUSH }}
+    
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install --no-cache-dir -r requirements.txt
+        
+      - name: cd to new release branch
+        run: |
+          echo $GITHUB_WORKSPACE
+          cd $GITHUB_WORKSPACE
+        
+      - name: Trigger helm build
+        if: needs.file_changes.outputs.helm == 'true'
+        run: |
+          git fetch --tags
+          ./build.sh release helm
