@@ -14,7 +14,7 @@ stage_map = {
             'beta' : '${major}.${minor}.${patch}-beta-',
             'alpha' : '${major}.${minor}.${patch}-alpha-',
             'main' : '${major}.${minor}.${patch}-develop-',
-            'release' : '${major}.${minor}.${patch}',
+            'release' : '${major}.${minor}.${patch}-',
             'simple' : '${major}.${minor}.',
             }
 
@@ -59,7 +59,8 @@ def get_git_branch(repo):
     branch = repo.active_branch.name
     git_branch_prefix = branch
     git_branch_name = branch
-
+    jira_card = ""
+    
     if branch.startswith("feature/") or branch.startswith("hotfix/") or branch.startswith("release/"):
         jira_card = branch.split("/")[1].split("-")[0] + "-" + branch.split("/")[1].split("-")[1]
         git_branch_prefix = branch.split("/")[0]
