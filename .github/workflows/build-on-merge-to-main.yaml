@@ -17,7 +17,9 @@ jobs:
       branch_name: ${{ steps.create_and_push_branch.outputs.branch_name }}
     steps:         
       - name: Set safe dir
-        run: git config --system --add safe.directory /__w/ripplex-cicd-scripts/ripplex-cicd-scripts
+        run: git config --system --add safe.directory /__w/testnet-faucet/testnet-faucet
+        
+        
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -45,7 +47,7 @@ jobs:
               - 'helm/**'
 
       - name: Set safe dir
-        run: git config --system --add safe.directory /__w/ripplex-cicd-scripts/ripplex-cicd-scripts
+        run: git config --system --add safe.directory /__w/testnet-faucet/testnet-faucet
 
       - name: Checkout repository
         if: steps.filter_changes.outputs.app == 'true' || steps.filter_changes.outputs.helm == 'true' 
@@ -105,7 +107,7 @@ jobs:
       image: ghcr.io/xpring-eng/ripplex-builder:0.1.39
     steps:
       - name: Set safe dir
-        run: git config --system --add safe.directory /__w/ripplex-cicd-scripts/ripplex-cicd-scripts
+        run: git config --system --add safe.directory /__w/testnet-faucet/testnet-faucet
 
       - name: Checkout release branch
         uses: actions/checkout@v3
@@ -137,7 +139,7 @@ jobs:
       image: ghcr.io/xpring-eng/ripplex-builder:0.1.39
     steps:
       - name: Set safe dir
-        run: git config --system --add safe.directory /__w/ripplex-cicd-scripts/ripplex-cicd-scripts
+        run: git config --system --add safe.directory /__w/testnet-faucet/testnet-faucet
 
       - name: Checkout release branch
         uses: actions/checkout@v3
