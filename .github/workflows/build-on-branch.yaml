@@ -1,0 +1,67 @@
+name: Run script on feature/release branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        type: string
+        description: branch name should start with "feature/" or "release/"
+        required: true
+
+jobs:
+  trigger_component_build:
+    runs-on: ubuntu-latest
+    container:
+        image: ghcr.io/xpring-eng/ripplex-builder:0.1.42
+    steps:
+      - name: Check if feature branch
+        id: validate_feature_branch
+        if: startsWith(inputs.branch_name, 'feature/')
+        run: |
+          echo "valid_name=true" >> $GITHUB_OUTPUT
+          echo "branch_prefix=feature" >> $GITHUB_ENV
+      
+      - name: Check if release branch
+        id: validate_release_branch
+        if: startsWith(inputs.branch_name, 'release/')
+        run: |
+          echo "valid_name=true" >> $GITHUB_OUTPUT
+          echo "branch_prefix=release" >> $GITHUB_ENV
+      
+      - name: Validate prefix
+        if: steps.validate_feature_branch.outputs.valid_name != 'true' && steps.validate_release_branch.outputs.valid_name != 'true'
+        run: |
+          echo "Not valid branch, branch should start with feature/ or release/"
+          exit 1
+
+      - name: Checkout branch
+        uses: actions/checkout@v3
+        with:
+          path: base_repo
+          ref: ${{ inputs.branch_name }}
+          token: ${{ secrets.SA_PAT_PUSH }}
+          set-safe-directory: true
+     
+      - name: Get current project_dir
+        id: project_dir
+        run: |
+          echo "project_dir=$PWD" >> $GITHUB_OUTPUT
+          echo "project_dir=$PWD"
+
+      - name: Sync files from ripplex cicd scripts repo
+        uses: xpring-eng/ripplex-cicd-scripts/actions/composite-action@main
+        with:
+          PROJECT_DIR: ${{ steps.project_dir.outputs.project_dir }}
+          CICD_SSH_KEY: ${{ secrets.CICD_SSH_KEY }}
+    
+      - name: Install Python dependencies
+        run: |
+          cd "${{ steps.project_dir.outputs.project_dir }}/base_repo"
+          python3 -m pip install --upgrade pip
+          pip3 install --no-cache-dir -r requirements.txt
+      
+      - name: Trigger all component builds
+        run: |
+          cd "${{ steps.project_dir.outputs.project_dir }}/base_repo"
+          git fetch --tags
+          ./build.sh ${{ env.branch_prefix }} all
