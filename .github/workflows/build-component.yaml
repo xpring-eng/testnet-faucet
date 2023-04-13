@@ -1,0 +1,45 @@
+name: build-component
+
+on:
+  push:
+    tags: component-version/**
+
+jobs:
+  build-component:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xpring-eng/ripplex-builder:0.1.42
+    steps:
+      - name: Checkout base repo
+        uses: actions/checkout@v3
+        with:
+          path: base_repo
+          token: ${{ secrets.SA_PAT_PUSH }}
+          set-safe-directory: true
+      
+      - name: Get current project_dir
+        id: project_dir
+        run: |
+          echo "project_dir=$PWD" >> $GITHUB_OUTPUT
+          echo "project_dir=$PWD"
+
+      - name: Sync files from ripplex cicd scripts repo
+        uses: xpring-eng/ripplex-cicd-scripts/actions/composite-action@main
+        with:
+          PROJECT_DIR: ${{ steps.project_dir.outputs.project_dir }}
+          CICD_SSH_KEY: ${{ secrets.CICD_SSH_KEY }}
+      
+      - name: Build Versioned Component
+        run: |
+          cd "${{ steps.project_dir.outputs.project_dir }}/base_repo"
+          .cicd/jobs/build-component.sh
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_BUILD_GITHUB_TOKEN: ${{ secrets.DOCKER_BUILD_GITHUB_TOKEN }}
+          GCR_SA_JSON_RIPPLE: ${{ secrets.GCR_SA_JSON_RIPPLE }}
+          GCR_SA_JSON_RIPPLEPROD: ${{ secrets.GCR_SA_JSON_RIPPLEPROD }}
+          GCR_HELM_SA_JSON_RIPPLEPROD: ${{ secrets.GCR_HELM_SA_JSON_RIPPLEPROD }}
+          CI_GCP_CREDENTIALS: ${{ secrets.CI_GCP_CREDENTIALS }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
