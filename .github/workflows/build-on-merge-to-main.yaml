@@ -17,7 +17,7 @@ jobs:
       branch_name: ${{ steps.create_and_push_branch.outputs.branch_name }}
     steps:         
       - name: Set safe dir
-        run: git config --system --add safe.directory /__w/testnet-faucet/testnet-faucet
+        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
         
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -91,7 +91,7 @@ jobs:
       image: ghcr.io/xpring-eng/ripplex-builder:0.1.42
     steps:
       - name: Set safe dir
-        run: git config --system --add safe.directory /__w/testnet-faucet/testnet-faucet
+        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Checkout release branch
         uses: actions/checkout@v3
@@ -107,11 +107,36 @@ jobs:
           echo "project_dir=$PWD" >> $GITHUB_OUTPUT
           echo "project_dir=$PWD"
   
-      - name: Sync files from ripplex cicd scripts repo
-        uses: xpring-eng/ripplex-cicd-scripts/actions/composite-action@main
+      - name: Get version number from cicd.yaml
+        id: version
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            export version=$(yq e '.cicd.version' "${project_dir}/base_repo/cicd.yaml")
+            echo "cicd.version: $version"
+            if [ ! -n "${version}" ]; then
+            echo "Version is empty. Please add a cicd.version to your cicd.yaml file."
+            exit 1
+            else
+            echo "Version is $version"
+            echo "version=$version" >> $GITHUB_OUTPUT
+            echo "version=$version"
+            fi
+
+      - name: Checkout cicd-scripts repo
+        uses: actions/checkout@v3
         with:
-          PROJECT_DIR: ${{ steps.project_dir.outputs.project_dir }}
-          CICD_SSH_KEY: ${{ secrets.CICD_SSH_KEY }}
+            repository: xpring-eng/ripplex-cicd-scripts
+            ref: ${{ steps.version.outputs.version }}
+            ssh-key: ${{ secrets.CICD_SSH_KEY }}
+            path: ripplex-cicd-scripts
+
+      - name: Sync files with rsync
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            cd "${project_dir}"
+            mkdir -p "${project_dir}/base_repo/.cicd"
+            rsync -avzr "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/.cicd/" "${project_dir}/base_repo/.cicd/"
+            rsync -avz "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/build.sh" "${project_dir}/base_repo/build.sh"
       
       - name: Install Python dependencies
         run: |
@@ -151,11 +176,36 @@ jobs:
           echo "project_dir=$PWD" >> $GITHUB_OUTPUT
           echo "project_dir=$PWD"
   
-      - name: Sync files from ripplex cicd scripts repo
-        uses: xpring-eng/ripplex-cicd-scripts/actions/composite-action@main
+      - name: Get version number from cicd.yaml
+        id: version
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            export version=$(yq e '.cicd.version' "${project_dir}/base_repo/cicd.yaml")
+            echo "cicd.version: $version"
+            if [ ! -n "${version}" ]; then
+            echo "Version is empty. Please add a cicd.version to your cicd.yaml file."
+            exit 1
+            else
+            echo "Version is $version"
+            echo "version=$version" >> $GITHUB_OUTPUT
+            echo "version=$version"
+            fi
+
+      - name: Checkout cicd-scripts repo
+        uses: actions/checkout@v3
         with:
-          PROJECT_DIR: ${{ steps.project_dir.outputs.project_dir }}
-          CICD_SSH_KEY: ${{ secrets.CICD_SSH_KEY }}
+            repository: xpring-eng/ripplex-cicd-scripts
+            ref: ${{ steps.version.outputs.version }}
+            ssh-key: ${{ secrets.CICD_SSH_KEY }}
+            path: ripplex-cicd-scripts
+
+      - name: Sync files with rsync
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            cd "${project_dir}"
+            mkdir -p "${project_dir}/base_repo/.cicd"
+            rsync -avzr "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/.cicd/" "${project_dir}/base_repo/.cicd/"
+            rsync -avz "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/build.sh" "${project_dir}/base_repo/build.sh"
       
       - name: Install Python dependencies
         run: |
