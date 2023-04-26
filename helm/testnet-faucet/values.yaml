@@ -1,5 +1,5 @@
 faucet:
-  image: gcr.io/xpring-dev-sandbox/testnet-faucet:latest
+  image: gcr.io/xpring-dev-sandbox/testnet-faucet:latest #image
   replicas: 1
   nodeEnv: production
   port: 3000
