@@ -1,9 +1,4 @@
-apiVersion: v1
+apiVersion: v2
 description: testnet-faucet
 name: testnet-faucet
 version: 0.0.1
-dependencies:
-  - name: xpringnginx
-    version: 0.1.0-feature-XPE874-2
-    repository: oci://us-central1-docker.pkg.dev/cbdc-helm-repo/ripplex-helm-charts
-    alias: faucetng
