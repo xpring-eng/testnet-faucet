@@ -160,7 +160,7 @@ jobs:
       image: ghcr.io/xpring-eng/ripplex-builder:0.1.42
     steps:
       - name: Set safe dir
-        run: git config --system --add safe.directory /__w/testnet-faucet/testnet-faucet
+        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Checkout release branch
         uses: actions/checkout@v3
