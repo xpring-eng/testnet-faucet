@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ $fullAppName }}-faucet-secret
+  name: {{ $fullAppName }}-secret
 type: Opaque
 data:
   NODE_ENV: {{ .Values.faucet.nodeEnv | b64enc }}
@@ -16,39 +16,41 @@ data:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $fullAppName }}-faucet
+  name: {{ $fullAppName }}
+  annotations:
+    cloud.google.com/neg: '{"exposed_ports": {"443":{"name": "{{ $fullAppName }}-neg"}}}'
 spec:
   type: ClusterIP
   selector:
-    app: {{ $fullAppName }}-faucet
+    app: {{ $fullAppName }}
   ports:
   - protocol: TCP
-    port: {{ .Values.faucet.port }}
+    port: 443
     targetPort: {{ .Values.faucet.port }}
     name: public
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $fullAppName }}-faucet
+  name: {{ $fullAppName }}
 spec:
   replicas: {{ .Values.faucet.replicas }}
   selector:
     matchLabels:
-      app: {{ $fullAppName }}-faucet
+      app: {{ $fullAppName }}
   template:
     metadata:
       annotations:
         date: {{ now }}
       labels:
-        app: {{ $fullAppName }}-faucet
+        app: {{ $fullAppName }}
     spec:
       containers:
       - image: {{ .Values.faucet.image }}
-        name: {{ $fullAppName }}-faucet
+        name: {{ $fullAppName }}
         envFrom:
         - secretRef:
-            name: {{ $fullAppName }}-faucet-secret
+            name: {{ $fullAppName }}-secret
         imagePullPolicy: Always
         ports:
         - containerPort: {{ .Values.faucet.port }}

@@ -1,0 +1,221 @@
+name: Run script on release branch
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+jobs:
+  file_changes:
+    runs-on: ubuntu-latest
+    container:
+        image: ghcr.io/xpring-eng/ripplex-builder:0.1.42
+    outputs:
+      app: ${{ steps.filter_changes.outputs.app }}
+      helm: ${{ steps.filter_changes.outputs.helm }}
+      branch_name: ${{ steps.create_and_push_branch.outputs.branch_name }}
+    steps:         
+      - name: Set safe dir
+        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
+        
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          set-safe-directory: true
+          token: ${{ secrets.SA_PAT_PUSH }}
+      
+      - name: Get branch name
+        run: echo "BRANCH_NAME=${GITHUB_HEAD_REF#feature/}" >> $GITHUB_ENV
+
+    
+      - name: Print branch name
+        run: echo ${{ env.BRANCH_NAME }} 
+
+      - name: Filter files
+        id: filter_changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            app:
+              - 'package.json'
+              - 'Dockerfile'
+              - 'index.js'
+            helm:
+              - 'helm/**'
+           
+      - name: Check if branch already exists
+        if: steps.filter_changes.outputs.app == 'true'  || steps.filter_changes.outputs.helm == 'true'
+        id: check_branch
+        run: |
+          if git ls-remote --exit-code --heads origin "release/${{ env.BRANCH_NAME }}" >/dev/null 2>&1; then
+            echo "branch_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "branch_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create release branch if not already existing
+        if: steps.check_branch.outputs.branch_exists == 'false'
+        run: |
+          echo "RELEASE_NAME=release/${{ env.BRANCH_NAME }}" >> $GITHUB_ENV
+
+      - name: Check if release branch with iterator already exists
+        if: steps.check_branch.outputs.branch_exists == 'true'
+        id: check_iterator
+        run: |
+          i=1
+          while git ls-remote --exit-code --heads origin "release/${{ env.BRANCH_NAME }}_${i}" >/dev/null 2>&1; do
+            i=$((i+1))
+          done
+          echo "iterator=${i}" >> $GITHUB_OUTPUT
+        
+      - name: Get release branch name with iterator
+        if: steps.check_branch.outputs.branch_exists == 'true'
+        run: |
+          echo "RELEASE_NAME=release/${{ env.BRANCH_NAME }}_${{ steps.check_iterator.outputs.iterator }}" >> $GITHUB_ENV
+
+      - name: Create release branch and push
+        if: steps.filter_changes.outputs.app == 'true'  || steps.filter_changes.outputs.helm == 'true'
+        id: create_and_push_branch
+        run: |
+          cd $GITHUB_WORKSPACE
+          git checkout -b ${{ env.RELEASE_NAME }}
+          git push --set-upstream origin ${{ env.RELEASE_NAME }}
+          echo "branch_name=${{ env.RELEASE_NAME }}" >> $GITHUB_OUTPUT
+
+  trigger_docker_build:
+    needs: file_changes
+    if: needs.file_changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xpring-eng/ripplex-builder:0.1.42
+    steps:
+      - name: Set safe dir
+        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Checkout release branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.file_changes.outputs.branch_name }}
+          token: ${{ secrets.SA_PAT_PUSH }}
+          set-safe-directory: true
+          path: base_repo
+    
+      - name: Get current project_dir
+        id: project_dir
+        run: |
+          echo "project_dir=$PWD" >> $GITHUB_OUTPUT
+          echo "project_dir=$PWD"
+  
+      - name: Get version number from cicd.yaml
+        id: version
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            export version=$(yq e '.cicd.version' "${project_dir}/base_repo/cicd.yaml")
+            echo "cicd.version: $version"
+            if [ ! -n "${version}" ]; then
+            echo "Version is empty. Please add a cicd.version to your cicd.yaml file."
+            exit 1
+            else
+            echo "Version is $version"
+            echo "version=$version" >> $GITHUB_OUTPUT
+            echo "version=$version"
+            fi
+
+      - name: Checkout cicd-scripts repo
+        uses: actions/checkout@v3
+        with:
+            repository: xpring-eng/ripplex-cicd-scripts
+            ref: ${{ steps.version.outputs.version }}
+            ssh-key: ${{ secrets.CICD_SSH_KEY }}
+            path: ripplex-cicd-scripts
+
+      - name: Sync files with rsync
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            cd "${project_dir}"
+            mkdir -p "${project_dir}/base_repo/.cicd"
+            rsync -avzr "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/.cicd/" "${project_dir}/base_repo/.cicd/"
+            rsync -avz "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/build.sh" "${project_dir}/base_repo/build.sh"
+      
+      - name: Install Python dependencies
+        run: |
+          cd "${{ steps.project_dir.outputs.project_dir }}/base_repo"
+          python3 -m pip install --upgrade pip
+          pip3 install --no-cache-dir -r requirements.txt
+        
+      
+      - name: Trigger docker build
+        if: needs.file_changes.outputs.app == 'true'
+        run: |
+          cd "${{ steps.project_dir.outputs.project_dir }}/base_repo"
+          git fetch --tags
+          ./build.sh release testnet_faucet
+
+  trigger_helm_build:
+    needs: file_changes
+    if: needs.file_changes.outputs.helm == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xpring-eng/ripplex-builder:0.1.42
+    steps:
+      - name: Set safe dir
+        run: git config --system --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Checkout release branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.file_changes.outputs.branch_name }}
+          token: ${{ secrets.SA_PAT_PUSH }}
+          set-safe-directory: true
+          path: base_repo
+    
+      - name: Get current project_dir
+        id: project_dir
+        run: |
+          echo "project_dir=$PWD" >> $GITHUB_OUTPUT
+          echo "project_dir=$PWD"
+  
+      - name: Get version number from cicd.yaml
+        id: version
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            export version=$(yq e '.cicd.version' "${project_dir}/base_repo/cicd.yaml")
+            echo "cicd.version: $version"
+            if [ ! -n "${version}" ]; then
+            echo "Version is empty. Please add a cicd.version to your cicd.yaml file."
+            exit 1
+            else
+            echo "Version is $version"
+            echo "version=$version" >> $GITHUB_OUTPUT
+            echo "version=$version"
+            fi
+
+      - name: Checkout cicd-scripts repo
+        uses: actions/checkout@v3
+        with:
+            repository: xpring-eng/ripplex-cicd-scripts
+            ref: ${{ steps.version.outputs.version }}
+            ssh-key: ${{ secrets.CICD_SSH_KEY }}
+            path: ripplex-cicd-scripts
+
+      - name: Sync files with rsync
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            cd "${project_dir}"
+            mkdir -p "${project_dir}/base_repo/.cicd"
+            rsync -avzr "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/.cicd/" "${project_dir}/base_repo/.cicd/"
+            rsync -avz "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/build.sh" "${project_dir}/base_repo/build.sh"
+      
+      - name: Install Python dependencies
+        run: |
+          cd "${{ steps.project_dir.outputs.project_dir }}/base_repo"
+          python3 -m pip install --upgrade pip
+          pip3 install --no-cache-dir -r requirements.txt
+        
+      - name: Trigger helm build
+        if: needs.file_changes.outputs.helm == 'true'
+        run: |
+          cd "${{ steps.project_dir.outputs.project_dir }}/base_repo"
+          git fetch --tags
+          ./build.sh release helm

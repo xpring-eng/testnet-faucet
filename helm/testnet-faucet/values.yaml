@@ -1,0 +1,9 @@
+faucet:
+  image: gcr.io/xpring-dev-sandbox/testnet-faucet:latest #image
+  replicas: 1
+  nodeEnv: production
+  port: 3000
+  rippledUri: null
+  fundingAddr: null
+  fundingSecret: null
+  xrpAmount: 1000

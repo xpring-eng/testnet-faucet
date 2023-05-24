@@ -163,19 +163,50 @@ app.post("/accounts", (req, res) => {
       amount = requestedAmountNumber.toString();
     }
 
-    api
-      .connect()
-      .then(() => {
-        console.log(`${reqId}| (connected)`);
-        if (nextAvailableSeq) {
-          // next tx should use the next seq
-          nextAvailableSeq++;
-          return nextAvailableSeq - 1;
-        } else {
-          return getSequenceFromAccountInfo({
-            reqId,
-            shouldAdvanceSequence: true,
-          });
+    api.connect().then(() => {
+      console.log(`${reqId}| (connected)`)
+      if (nextAvailableSeq) {
+        // next tx should use the next seq
+        nextAvailableSeq++
+        return nextAvailableSeq - 1
+      } else {
+        return getSequenceFromAccountInfo({reqId, shouldAdvanceSequence: true})
+      }
+    }).then(sequence => {
+      console.log(`${reqId}| Preparing payment with destination=${account.address}, sequence: ${sequence}`)
+      const payment = {
+        source: {
+          address: address,
+          maxAmount: {
+            value: amount,
+            currency: 'XRP'
+          }
+        },
+        destination: {
+          address: account.address,
+          amount: {
+            value: amount,
+            currency: 'XRP'
+          }
+        },
+        memos: req.body.memos ? [...req.body.memos] : [],
+      }
+      if (account.tag) payment.destination.tag = account.tag
+      return api.preparePayment(address, payment, {maxLedgerVersionOffset: 5, sequence})
+    }).then(prepared => {
+      checkForWarning(prepared)
+
+      const {signedTransaction} = api.sign(prepared.txJSON, secret)
+      return api.submit(signedTransaction)
+    }).then((result) => {
+      checkForWarning(result)
+
+      if (result.engine_result === 'tesSUCCESS' || result.engine_result === 'terQUEUED') {
+        // || result.engine_result === 'terPRE_SEQ'
+        console.log(`${reqId}| Funded ${account.address} with ${amount} XRP (${result.engine_result})`)
+        const response = {
+          account,
+          amount: Number(amount)
         }
       })
       .then((sequence) => {

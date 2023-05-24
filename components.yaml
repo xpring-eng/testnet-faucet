@@ -1,0 +1,20 @@
+helm:
+  major_version: 0
+  minor_version: 1
+  # patch_version: 9
+  type: helm
+  chart_dir: helm
+  chart_name: testnet-faucet
+  repo: oci://us-central1-docker.pkg.dev/cbdc-helm-repo/ripplex-helm-charts
+
+testnet_faucet:
+  major_version: 0
+  minor_version: 1
+  type: docker
+  docker:
+    dir: "."
+    registry:
+    - us-central1-docker.pkg.dev/cbdc-helm-repo/ripplex-images
+    image_name: testnet_faucet
+    build_args:
+      GIT_TAG_OR_BRANCH: "${GIT_BRANCH_NAME}"

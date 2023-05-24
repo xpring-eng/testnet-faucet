@@ -1,0 +1,70 @@
+name: build-component
+
+on:
+  push:
+    tags: component-version/**
+
+jobs:
+  build-component:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xpring-eng/ripplex-builder:0.1.42
+    steps:
+      - name: Checkout base repo
+        uses: actions/checkout@v3
+        with:
+          path: base_repo
+          token: ${{ secrets.SA_PAT_PUSH }}
+          set-safe-directory: true
+      
+      - name: Get current project_dir
+        id: project_dir
+        run: |
+          echo "project_dir=$PWD" >> $GITHUB_OUTPUT
+          echo "project_dir=$PWD"
+
+      - name: Get version number from cicd.yaml
+        id: version
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            export version=$(yq e '.cicd.version' "${project_dir}/base_repo/cicd.yaml")
+            echo "cicd.version: $version"
+            if [ ! -n "${version}" ]; then
+            echo "Version is empty. Please add a cicd.version to your cicd.yaml file."
+            exit 1
+            else
+            echo "Version is $version"
+            echo "version=$version" >> $GITHUB_OUTPUT
+            echo "version=$version"
+            fi
+
+      - name: Checkout cicd-scripts repo
+        uses: actions/checkout@v3
+        with:
+            repository: xpring-eng/ripplex-cicd-scripts
+            ref: ${{ steps.version.outputs.version }}
+            ssh-key: ${{ secrets.CICD_SSH_KEY }}
+            path: ripplex-cicd-scripts
+
+      - name: Sync files with rsync
+        run: |
+            project_dir="${{ steps.project_dir.outputs.project_dir }}"
+            cd "${project_dir}"
+            mkdir -p "${project_dir}/base_repo/.cicd"
+            rsync -avzr "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/.cicd/" "${project_dir}/base_repo/.cicd/"
+            rsync -avz "${project_dir}/ripplex-cicd-scripts/ripplex-cicd/build.sh" "${project_dir}/base_repo/build.sh"
+      
+      - name: Build Versioned Component
+        run: |
+          cd "${{ steps.project_dir.outputs.project_dir }}/base_repo"
+          .cicd/jobs/build-component.sh
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_BUILD_GITHUB_TOKEN: ${{ secrets.DOCKER_BUILD_GITHUB_TOKEN }}
+          GCR_SA_JSON_RIPPLE: ${{ secrets.GCR_SA_JSON_RIPPLE }}
+          GCR_SA_JSON_RIPPLEPROD: ${{ secrets.GCR_SA_JSON_RIPPLEPROD }}
+          GCR_HELM_SA_JSON_RIPPLEPROD: ${{ secrets.GCR_HELM_SA_JSON_RIPPLEPROD }}
+          CI_GCP_CREDENTIALS: ${{ secrets.CI_GCP_CREDENTIALS }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
