@@ -222,7 +222,7 @@ app.post('/accounts', (req, res) => {
         if (clientEmail && privateKey && projectID) {
           const bigquery = new BigQuery(
             {
-              projectID: projectID,
+              projectId: projectID,
               credentials:{
                 client_email: clientEmail,
                   private_key: privateKey,
