@@ -10,8 +10,8 @@ const { BigQuery } = require("@google-cloud/bigquery");
 
 
 /// bigQuery table and table ID
-const datasetId = "faucet";
-const tableId = "faucet-transactions";
+const datasetId = process.env['BIGQUERY_DATASET_ID'];
+const tableId = process.env['BIGQUERY_TABLE_ID'];
 const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
 const secret = process.env['FUNDING_SECRET']
