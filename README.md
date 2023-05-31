@@ -33,7 +33,7 @@ This application logs and analyzes data using Google BigQuery. To use this featu
 
 ### Run the server with BigQuery (Optional):
 
-Please replace `"your_project_id"`, `"your_client_email"`, and `"your_private_key"` with your actual project ID, client email, and private key.
+Please replace `BIGQUERY_PROJECT_ID`, `BIGQUERY_CLIENT_EMAIL`, and `BIGQUERY_PRIVATE_KEY` with your actual project ID, client email, and private key.
 
 ### BigQuery Environment Variables:
 
