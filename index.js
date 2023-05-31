@@ -21,15 +21,7 @@ const clientEmail = process.env.BIGQUERY_CLIENT_EMAIL;
 const projectID = process.env.BIGQUERY_PROJECT_ID;
 const privateKey = process.env.BIGQUERY_PRIVATE_KEY.replace(/\\n/g, '\n');
 
-const bigquery = new BigQuery(
-  {
-    projectID: projectID,
-    credentials:{
-      client_email: clientEmail,
-        private_key: privateKey,
-    }
-  }
-);
+
 
 app.use(cors())
 app.use(express.json())
@@ -229,16 +221,29 @@ app.post('/accounts', (req, res) => {
         },
         ];
 
-        bigquery
-            .dataset(datasetId)
-            .table(tableId)
-            .insert(rows, (error) => {
-              if (error) {
-                console.warn("WARNING: Failed to insert into BigQuery", error);
-              } else {
-                console.log(`Inserted ${rows.length} rows`);
+        if (clientEmail && privateKey && projectID) {
+          const bigquery = new BigQuery(
+            {
+              projectID: projectID,
+              credentials:{
+                client_email: clientEmail,
+                  private_key: privateKey,
               }
-            });
+            }
+          );
+          
+          bigquery
+              .dataset(datasetId)
+              .table(tableId)
+              .insert(rows, (error) => {
+                if (error) {
+                  console.warn("WARNING: Failed to insert into BigQuery", error);
+                } else {
+                  console.log(`Inserted ${rows.length} rows`);
+                }
+              });
+        }
+        
         /// prepare res
         if (!req.body.destination) {
           response.balance = Number(amount)
