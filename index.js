@@ -6,17 +6,30 @@ const port = process.env['PORT']
 const RippleAPI = require('ripple-lib').RippleAPI
 const addressCodec = require('ripple-address-codec')
 const { BigQuery } = require("@google-cloud/bigquery");
-const bigquery = new BigQuery();
+
 
 
 /// bigQuery table and table ID
-const datasetId = "ripplex-347905.faucet";
-const tableId = "ripplex-347905.faucet.faucet-trasanctions";
+const datasetId = "faucet";
+const tableId = "faucet-transactions";
 const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
 const secret = process.env['FUNDING_SECRET']
 const defaultAmount = process.env['XRP_AMOUNT']
 const MAX_AMOUNT = '1000000'
+const clientEmail = process.env.BIGQUERY_CLIENT_EMAIL;
+const projectID = process.env.BIGQUERY_PROJECT_ID;
+const privateKey = process.env.BIGQUERY_PRIVATE_KEY.replace(/\\n/g, '\n');
+
+const bigquery = new BigQuery(
+  {
+    projectID: projectID,
+    credentials:{
+      client_email: clientEmail,
+        private_key: privateKey,
+    }
+  }
+);
 
 app.use(cors())
 app.use(express.json())
@@ -210,8 +223,9 @@ app.post('/accounts', (req, res) => {
             user_agent: userAgent,
             usage_context: usageContext,
             memos: memos,
-            "account-address": address,
+            account: address,
             amount: amount,
+            sequence: sequence, 
         },
         ];
 
