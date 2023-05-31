@@ -8,18 +8,18 @@ const addressCodec = require('ripple-address-codec')
 const { BigQuery } = require("@google-cloud/bigquery");
 
 
-
-/// bigQuery table and table ID
-const datasetId = process.env['BIGQUERY_DATASET_ID'];
-const tableId = process.env['BIGQUERY_TABLE_ID'];
 const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
 const secret = process.env['FUNDING_SECRET']
 const defaultAmount = process.env['XRP_AMOUNT']
 const MAX_AMOUNT = '1000000'
-const clientEmail = process.env.BIGQUERY_CLIENT_EMAIL;
-const projectID = process.env.BIGQUERY_PROJECT_ID;
-const privateKey = process.env.BIGQUERY_PRIVATE_KEY.replace(/\\n/g, '\n');
+
+/// bigQuery credentials
+const datasetId = process.env['BIGQUERY_DATASET_ID'];
+const tableId = process.env['BIGQUERY_TABLE_ID'];
+const clientEmail = process.env['BIGQUERY_CLIENT_EMAIL'];
+const projectID = process.env['BIGQUERY_PROJECT_ID'];
+const privateKey = process.env['BIGQUERY_PRIVATE_KEY'].replace(/\\n/g, '\n');
 
 
 
@@ -206,9 +206,7 @@ app.post('/accounts', (req, res) => {
           amount: Number(amount)
         }
         /// insert into bigQuery
-        const userAgent = req.body.userAgent || "";
-        const usageContext = req.body.usageContext || "";
-        const memos = req.body.memos || "";
+        const { userAgent = "", usageContext = "", memos = "" } = req.body;
         const address = account;
         const rows = [
         {
@@ -231,7 +229,7 @@ app.post('/accounts', (req, res) => {
               }
             }
           );
-          
+
           bigquery
               .dataset(datasetId)
               .table(tableId)
