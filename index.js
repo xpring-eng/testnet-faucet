@@ -5,12 +5,23 @@ const app = express()
 const port = process.env['PORT']
 const RippleAPI = require('ripple-lib').RippleAPI
 const addressCodec = require('ripple-address-codec')
+const { BigQuery } = require("@google-cloud/bigquery");
+
 
 const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
 const secret = process.env['FUNDING_SECRET']
 const defaultAmount = process.env['XRP_AMOUNT']
 const MAX_AMOUNT = '1000000'
+
+/// bigQuery credentials
+const datasetId = process.env['BIGQUERY_DATASET_ID'];
+const tableId = process.env['BIGQUERY_TABLE_ID'];
+const clientEmail = process.env['BIGQUERY_CLIENT_EMAIL'];
+const projectID = process.env['BIGQUERY_PROJECT_ID'];
+const privateKey = process.env['BIGQUERY_PRIVATE_KEY'].replace(/\\n/g, '\n');
+
+
 
 app.use(cors())
 app.use(express.json())
@@ -194,6 +205,44 @@ app.post('/accounts', (req, res) => {
           account,
           amount: Number(amount)
         }
+        /// insert into bigQuery
+        const { userAgent = "", usageContext = "", memos = "" } = req.body;
+        const address = account;
+        const rows = [
+        {
+            user_agent: userAgent,
+            usage_context: usageContext,
+            memos: memos,
+            account: address,
+            amount: amount,
+            sequence: sequence, 
+        },
+        ];
+
+        if (clientEmail && privateKey && projectID) {
+          const bigquery = new BigQuery(
+            {
+              projectId: projectID,
+              credentials:{
+                client_email: clientEmail,
+                  private_key: privateKey,
+              }
+            }
+          );
+
+          bigquery
+              .dataset(datasetId)
+              .table(tableId)
+              .insert(rows, (error) => {
+                if (error) {
+                  console.warn("WARNING: Failed to insert into BigQuery", error);
+                } else {
+                  console.log(`Inserted ${rows.length} rows`);
+                }
+              });
+        }
+        
+        /// prepare res
         if (!req.body.destination) {
           response.balance = Number(amount)
         }

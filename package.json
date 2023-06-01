@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/bigquery": "^6.2.0",
     "cors": "^2.8.4",
     "express": "^4.16.3",
     "ripple-address-codec": "^4.1.0",
