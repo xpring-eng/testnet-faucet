@@ -45,6 +45,7 @@ spec:
       labels:
         app: {{ $fullAppName }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccountName }}
       containers:
       - image: {{ .Values.faucet.image }}
         name: {{ $fullAppName }}
