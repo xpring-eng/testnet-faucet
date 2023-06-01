@@ -12,6 +12,11 @@ data:
   FUNDING_ADDRESS: {{ .Values.faucet.fundingAddr | b64enc }}
   FUNDING_SECRET: {{ .Values.faucet.fundingSecret | b64enc }}
   XRP_AMOUNT: {{ .Values.faucet.xrpAmount | toString  | b64enc }}
+  BIGQUERY_PRIVATE_KEY: {{ .Values.faucet.bigQueryPrivateKey | toString  | b64enc }}
+  BIGQUERY_CLIENT_EMAIL: {{ .Values.faucet.bigQueryClientEmail | toString  | b64enc }}
+  BIGQUERY_PROJECT_ID: {{ .Values.faucet.bigQueryProjectId | toString  | b64enc }}
+  BIGQUERY_DATASET_ID: {{ .Values.faucet.bigQueryDatasetId | toString  | b64enc }}
+  BIGQUERY_TABLE_ID: {{ .Values.faucet.bigQueryTableId | toString  | b64enc }}
 ---
 apiVersion: v1
 kind: Service
