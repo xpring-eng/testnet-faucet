@@ -37,8 +37,10 @@ build/publish:
   needs: ["build/publish"]
   when: manual
   script:
+    - git clone --single-branch --branch master https://github.com/xpring-eng/testnet-faucet.git
+    - cd testnet-faucet
     - mkdir dependency_charts
-    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.in.xpring.tech/xpring-eng/xpring_nginx.git dependency_charts/xpring_nginx
+    - git clone --single-branch --branch master https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.in.ripplex.dev/xpring-eng/xpring_nginx.git dependency_charts/xpring_nginx
     - kubectl create namespace ${RELEASE_NAME}-${RELEASE_ENV} || true
     - helm dep update ./charts
     - helm upgrade --install --namespace ${RELEASE_NAME}-${RELEASE_ENV}
