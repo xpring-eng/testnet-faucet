@@ -19,7 +19,7 @@ const datasetId = process.env['BIGQUERY_DATASET_ID'];
 const tableId = process.env['BIGQUERY_TABLE_ID'];
 const clientEmail = process.env['BIGQUERY_CLIENT_EMAIL'];
 const projectID = process.env['BIGQUERY_PROJECT_ID'];
-const privateKey = process.env['BIGQUERY_PRIVATE_KEY'].replace(/\\n/g, '\n');
+const privateKey = process.env['BIGQUERY_PRIVATE_KEY'] ? process.env['BIGQUERY_PRIVATE_KEY'].replace(/\\n/g, '\n') : "";
 
 
 
@@ -205,6 +205,8 @@ app.post('/accounts', (req, res) => {
           account,
           amount: Number(amount)
         }
+
+        if (clientEmail && privateKey && projectID) {
         /// insert into bigQuery
         const { userAgent = "", usageContext = "", memos = "" } = req.body;
         const address = account;
@@ -218,8 +220,6 @@ app.post('/accounts', (req, res) => {
             sequence: sequence, 
         },
         ];
-
-        if (clientEmail && privateKey && projectID) {
           const bigquery = new BigQuery(
             {
               projectId: projectID,
