@@ -19,9 +19,7 @@ const datasetId = process.env['BIGQUERY_DATASET_ID'];
 const tableId = process.env['BIGQUERY_TABLE_ID'];
 const clientEmail = process.env['BIGQUERY_CLIENT_EMAIL'];
 const projectId = process.env['BIGQUERY_PROJECT_ID'];
-const privateKey = process.env['BIGQUERY_PRIVATE_KEY'] ? process.env['BIGQUERY_PRIVATE_KEY'].replace(/\\n/g, '\n') : "";
-
-console.log("BIG QUERY Credentials:", datasetId, tableId, projectId, clientEmail, privateKey)
+const privateKey = process.env['BIGQUERY_PRIVATE_KEY']
 
 app.use(cors())
 app.use(express.json())
@@ -229,6 +227,7 @@ app.post('/accounts', (req, res) => {
               }
             }
           );
+          console.log("Bigquery object", bigquery)
 
           bigquery
               .dataset(datasetId)
@@ -240,6 +239,7 @@ app.post('/accounts', (req, res) => {
                   console.log(`Inserted ${rows.length} rows`);
                 }
               });
+            console.log("inserted big query")
         }
         
         /// prepare res
