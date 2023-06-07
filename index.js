@@ -18,10 +18,10 @@ const MAX_AMOUNT = '1000000'
 const datasetId = process.env['BIGQUERY_DATASET_ID'];
 const tableId = process.env['BIGQUERY_TABLE_ID'];
 const clientEmail = process.env['BIGQUERY_CLIENT_EMAIL'];
-const projectID = process.env['BIGQUERY_PROJECT_ID'];
+const projectId = process.env['BIGQUERY_PROJECT_ID'];
 const privateKey = process.env['BIGQUERY_PRIVATE_KEY'] ? process.env['BIGQUERY_PRIVATE_KEY'].replace(/\\n/g, '\n') : "";
 
-console.log("BIG QUERY Credentials:", datasetId, tableId, projectID, clientEmail, privateKey)
+console.log("BIG QUERY Credentials:", datasetId, tableId, projectId, clientEmail, privateKey)
 
 app.use(cors())
 app.use(express.json())
@@ -206,7 +206,7 @@ app.post('/accounts', (req, res) => {
           amount: Number(amount)
         }
 
-        if (clientEmail && privateKey && projectID) {
+        if (clientEmail && privateKey && projectId) {
         /// insert into bigQuery
         const { userAgent = "", usageContext = "", memos = "" } = req.body;
         const address = account;
@@ -222,7 +222,7 @@ app.post('/accounts', (req, res) => {
         ];
           const bigquery = new BigQuery(
             {
-              projectId: projectID,
+              projectId: projectId,
               credentials:{
                 client_email: clientEmail,
                   private_key: privateKey,
