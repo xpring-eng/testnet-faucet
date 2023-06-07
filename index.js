@@ -21,7 +21,7 @@ const clientEmail = process.env['BIGQUERY_CLIENT_EMAIL'];
 const projectID = process.env['BIGQUERY_PROJECT_ID'];
 const privateKey = process.env['BIGQUERY_PRIVATE_KEY'] ? process.env['BIGQUERY_PRIVATE_KEY'].replace(/\\n/g, '\n') : "";
 
-console.log("BIG QUERY Credentials:", datasetId, tableID, projectID, clientEmail, privateKey)
+console.log("BIG QUERY Credentials:", datasetId, tableId, projectID, clientEmail, privateKey)
 
 app.use(cors())
 app.use(express.json())
