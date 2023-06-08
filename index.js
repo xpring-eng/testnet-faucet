@@ -203,21 +203,22 @@ app.post('/accounts', (req, res) => {
           account,
           amount: Number(amount)
         }
-
+        console.log(clientEmail,projectId, "BIGQUERY CREDS")
         if (clientEmail && privateKey && projectId) {
         /// insert into bigQuery
-        const { userAgent = "", usageContext = "", memos = "" } = req.body;
-        const address = account;
-        const rows = [
-        {
-            user_agent: userAgent,
-            usage_context: usageContext,
-            memos: memos,
-            account: address,
-            amount: amount,
-            sequence: sequence, 
-        },
-        ];
+          console.log("got in big query code")
+          const { userAgent = "", usageContext = "", memos = "" } = req.body;
+          const address = account;
+          const rows = [
+          {
+              user_agent: userAgent,
+              usage_context: usageContext,
+              memos: memos,
+              account: address,
+              amount: amount,
+              sequence: sequence, 
+          },
+          ];
           const bigquery = new BigQuery(
             {
               projectId: projectId,
