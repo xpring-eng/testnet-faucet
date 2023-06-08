@@ -193,7 +193,7 @@ app.post('/accounts', (req, res) => {
 
       const {signedTransaction} = api.sign(prepared.txJSON, secret)
       return api.submit(signedTransaction)
-    }).then((result) => {
+    }).then((result, sequence) => {
       checkForWarning(result)
 
       if (result.engine_result === 'tesSUCCESS' || result.engine_result === 'terQUEUED') {
