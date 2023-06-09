@@ -1,4 +1,3 @@
-require('dotenv').config();
 const os = require('os')
 const express = require('express')
 const cors = require('cors')
@@ -203,7 +202,7 @@ app.post('/accounts', (req, res) => {
           account,
           amount: Number(amount)
         }
-        
+
         if (clientEmail && privateKey && projectId) {
           const { userAgent = "", usageContext = "", memos = "" } = req.body;
           const rows = [
