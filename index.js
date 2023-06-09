@@ -1,3 +1,4 @@
+require('dotenv').config();
 const os = require('os')
 const express = require('express')
 const cors = require('cors')
@@ -19,8 +20,7 @@ const datasetId = process.env['BIGQUERY_DATASET_ID'];
 const tableId = process.env['BIGQUERY_TABLE_ID'];
 const clientEmail = process.env['BIGQUERY_CLIENT_EMAIL'];
 const projectId = process.env['BIGQUERY_PROJECT_ID'];
-const privateKey = process.env['BIGQUERY_PRIVATE_KEY']
-
+const privateKey = process.env['BIGQUERY_PRIVATE_KEY'] ? process.env['BIGQUERY_PRIVATE_KEY'].replace(/\\n/g, '\n') : ""
 app.use(cors())
 app.use(express.json())
 
@@ -203,18 +203,15 @@ app.post('/accounts', (req, res) => {
           account,
           amount: Number(amount)
         }
-        console.log(clientEmail,projectId, "BIGQUERY CREDS")
+        
         if (clientEmail && privateKey && projectId) {
-        /// insert into bigQuery
-          console.log("got in big query code")
           const { userAgent = "", usageContext = "", memos = "" } = req.body;
-          const address = account;
           const rows = [
           {
               user_agent: userAgent,
               usage_context: usageContext,
               memos: memos,
-              account: address,
+              account: account.xAddress,
               amount: amount,
               sequence: sequence, 
           },
@@ -228,14 +225,13 @@ app.post('/accounts', (req, res) => {
               }
             }
           );
-          console.log("Bigquery object", bigquery)
 
           bigquery
               .dataset(datasetId)
               .table(tableId)
               .insert(rows, (error) => {
                 if (error) {
-                  console.warn("WARNING: Failed to insert into BigQuery", error);
+                  console.warn("WARNING: Failed to insert into BigQuery", JSON.stringify(error, null, 2));
                 } else {
                   console.log(`Inserted ${rows.length} rows`);
                 }
