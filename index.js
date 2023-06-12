@@ -204,7 +204,8 @@ app.post('/accounts', (req, res) => {
         }
 
         if (clientEmail && privateKey && projectId) {
-          const { userAgent = "", usageContext = "", memos = "" } = req.body;
+          const { userAgent = "", usageContext = "" } = req.body;
+          const memos = req.body.memos ? [...req.body.memos] : [];
           const rows = [
           {
               user_agent: userAgent,
