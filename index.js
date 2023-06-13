@@ -1,3 +1,4 @@
+require('dotenv').config();
 const os = require('os')
 const express = require('express')
 const cors = require('cors')
@@ -205,7 +206,7 @@ app.post('/accounts', (req, res) => {
 
         if (clientEmail && privateKey && projectId) {
           const { userAgent = "", usageContext = "" } = req.body;
-          const memos = req.body.memos ? [...req.body.memos] : [];
+          const memos = req.body.memos ? req.body.memos.map(memo => ({ memo })) : [];
           const rows = [
           {
               user_agent: userAgent,
