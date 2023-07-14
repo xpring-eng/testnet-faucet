@@ -3,10 +3,10 @@ const express = require('express')
 const cors = require('cors')
 const app = express()
 const port = process.env['PORT']
-const RippleAPI = require('ripple-lib').RippleAPI
 const addressCodec = require('ripple-address-codec')
 const { BigQuery } = require("@google-cloud/bigquery");
-
+const {classicAddressToXAddress, isValidClassicAddress, xAddressToClassicAddress} = require('ripple-address-codec')
+const xrpl = require('xrpl')
 
 const rippledUri = process.env['RIPPLED_URI']
 const address = process.env['FUNDING_ADDRESS']
@@ -51,7 +51,7 @@ function createRippleAPI() {
     return
   }
 
-  api = new RippleAPI({
+  api = new xrpl.Client({
     server: rippledUri
   })
 
@@ -59,16 +59,6 @@ function createRippleAPI() {
     console.log('Connection error: ' + error)
     console.log(error)
   })
-
-  if (api.connection._ws) {
-    console.log('setting _ws error handler')
-    api.connection._ws.on('error', error => {
-      console.log('_ws error: ' + error)
-      console.log(error)
-    })
-  } else {
-    console.log('no _ws yet')
-  }
 
   api.on('error', (errorCode, errorMessage) => {
     console.log('RippleAPI error: ' + errorCode + ': ' + errorMessage)
@@ -106,18 +96,18 @@ app.post('/accounts', (req, res) => {
     createRippleAPI()
     let account
     if (req.body.destination) {
-      if (api.isValidAddress(req.body.destination)) {
+      if (isValidClassicAddress(req.body.destination)) {
         let xAddress
         let classicAddress
         let tag
 
         if (req.body.destination.startsWith('T')) {
-          const t = addressCodec.xAddressToClassicAddress(req.body.destination)
+          const t = xAddressToClassicAddress(req.body.destination)
           xAddress = req.body.destination
           classicAddress = t.classicAddress
           tag = t.tag
         } else {
-          xAddress = addressCodec.classicAddressToXAddress(req.body.destination, false, true)
+          xAddress = classicAddressToXAddress(req.body.destination, false, true)
           classicAddress = req.body.destination
         }
         account = {
@@ -169,20 +159,9 @@ app.post('/accounts', (req, res) => {
     }).then(sequence => {
       console.log(`${reqId}| Preparing payment with destination=${account.address}, sequence: ${sequence}`)
       const payment = {
-        source: {
-          address: address,
-          maxAmount: {
-            value: amount,
-            currency: 'XRP'
-          }
-        },
-        destination: {
-          address: account.address,
-          amount: {
-            value: amount,
-            currency: 'XRP'
-          }
-        },
+        Account: address,
+        Amount: amount,
+        destination: account.address,
         memos: req.body.memos ? [...req.body.memos] : [],
       }
       if (account.tag) payment.destination.tag = account.tag
@@ -213,7 +192,7 @@ app.post('/accounts', (req, res) => {
               memos: memos,
               account: account.xAddress,
               amount: amount,
-              sequence: sequence, 
+              sequence: sequence,
           },
           ];
           const bigquery = new BigQuery(
@@ -238,7 +217,7 @@ app.post('/accounts', (req, res) => {
               });
             console.log("inserted big query")
         }
-        
+
         /// prepare res
         if (!req.body.destination) {
           response.balance = Number(amount)
