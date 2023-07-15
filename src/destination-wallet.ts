@@ -1,5 +1,4 @@
 import { classicAddressToXAddress, isValidClassicAddress, xAddressToClassicAddress } from 'ripple-address-codec';
-import { Wallet } from 'xrpl';
 import { Account } from './types';
 
 export function getDestinationWallet(address?: string): Account {
