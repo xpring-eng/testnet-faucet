@@ -9,7 +9,6 @@ import { getTicket } from "../ticket-queue";
 import rTracer from "cls-rtracer";
 
 export default async function (req: Request, res: Response) {
-  const reqId = (Math.random() + 1).toString(36).substr(2, 5);
   const client = await connect();
 
   let account;
@@ -73,7 +72,9 @@ export default async function (req: Request, res: Response) {
     // TODO: check for tefNO_TICKET and try again with another ticket
     if (status === "tesSUCCESS" || status === "terQUEUED") {
       console.log(
-        `${reqId} | Funded ${account.address} with ${amount} XRP (${status})`
+        `${rTracer.id()} | Funded ${
+          account.address
+        } with ${amount} XRP (${status})`
       );
 
       if (config.BIGQUERY_PROJECT_ID) {
@@ -118,12 +119,12 @@ export default async function (req: Request, res: Response) {
       res.send(response);
     }
   } catch (err) {
-    console.log(`${reqId}| ${err}`);
+    console.log(`${rTracer.id()}| ${err}`);
     res.status(500).send({
       error: "Unable to fund account. Server load is too high. Try again later",
       account,
     });
-    await resetClient("accounts");
+    await resetClient(rTracer.id().toString());
   }
 }
 

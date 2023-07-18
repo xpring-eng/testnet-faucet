@@ -4,7 +4,7 @@ import { connect, resetClient } from "../client";
 import { fundingWallet } from "../wallet";
 import { checkForWarning, format } from "../utils";
 import { AccountInfoResponse, FeeResponse, ServerInfoResponse } from "xrpl";
-
+import * as packageJson from "../../package.json";
 export default async function (req: Request, res: Response) {
   let client = await connect();
   try {
@@ -39,7 +39,7 @@ export default async function (req: Request, res: Response) {
     const processUptime = process.uptime();
     const osUptime = os.uptime();
     res.send({
-      faucetVersion: "0.0.2",
+      faucetVersion: packageJson.version,
       processUptime,
       processUptimeHhMmSs: format(processUptime),
       osUptime,
