@@ -1,4 +1,3 @@
-import { connect } from "./client";
 export function format(seconds: number) {
   function pad(s: number) {
     return (s < 10 ? "0" : "") + s;

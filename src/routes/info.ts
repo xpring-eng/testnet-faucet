@@ -1,10 +1,9 @@
 const os = require("os");
 import { Request, Response } from "express";
-import { connect } from "../client";
+import { connect, resetClient } from "../client";
 import { fundingWallet } from "../wallet";
-import { ServerInfoResponse } from "ripple-lib/dist/npm/common/types/commands";
 import { checkForWarning, format } from "../utils";
-import { AccountInfoResponse, FeeResponse } from "xrpl";
+import { AccountInfoResponse, FeeResponse, ServerInfoResponse } from "xrpl";
 
 export default async function (req: Request, res: Response) {
   let client = await connect();
@@ -27,15 +26,15 @@ export default async function (req: Request, res: Response) {
     });
     console.log(
       "Returning /info - ledgerVersion: " +
-        serverInfo.validatedLedger.ledgerVersion +
+        serverInfo.result.info.build_version +
         ", age: " +
-        serverInfo.validatedLedger.age +
+        serverInfo.result.info.validated_ledger.age +
         ", expected_ledger_size: " +
         feeInfo.result.expected_ledger_size +
         ", open_ledger_fee: " +
         feeInfo.result.drops.open_ledger_fee +
         ", hostID: " +
-        serverInfo.hostID
+        serverInfo.result.info.hostid
     );
     const processUptime = process.uptime();
     const osUptime = os.uptime();
@@ -54,7 +53,6 @@ export default async function (req: Request, res: Response) {
     res.status(500).send({
       error: "Server load is too high. Request info later",
     });
-    await client.disconnect();
-    client = await connect();
+    await resetClient("info");
   }
 }
