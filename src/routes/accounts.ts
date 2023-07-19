@@ -69,7 +69,6 @@ export default async function (req: Request, res: Response) {
       amount: Number(amount),
     };
 
-    // TODO: check for tefNO_TICKET and try again with another ticket
     if (status === "tesSUCCESS" || status === "terQUEUED") {
       console.log(
         `${rTracer.id()} | Funded ${

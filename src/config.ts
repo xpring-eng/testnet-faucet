@@ -47,8 +47,6 @@ required.forEach((field: string) => {
 });
 
 (new Map(Object.entries(defaults))).forEach((value: string, key: any) => {
-  console.log(value, key)
-  // const [key, value] = defaultOption[]
   if(!(key in config)) {
     config[key] = value
   }
