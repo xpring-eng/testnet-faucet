@@ -18,11 +18,9 @@ export default async function (req: Request, res: Response) {
     checkForWarning(feeInfo);
     const accountInfo: AccountInfoResponse = await client.request({
       command: "account_info",
-      params: {
-        account: fundingWallet.classicAddress,
-        ledger_index: "current",
-        queue: true,
-      },
+      account: fundingWallet.classicAddress,
+      ledger_index: "current",
+      queue: true,
     });
     console.log(
       "Returning /info - ledgerVersion: " +

@@ -3,6 +3,8 @@ import rTracer from "cls-rtracer";
 import cors from "cors";
 
 import accounts from "./routes/accounts";
+import status from "./routes/status";
+import info from "./routes/info";
 import { config } from "./config";
 
 const app = express();
@@ -10,6 +12,8 @@ app.use(cors());
 app.use(express.json());
 app.use(rTracer.expressMiddleware());
 app.post("/accounts", accounts);
+app.get("/info", info);
+app.get("/status", status);
 
 const server = app.listen(config.PORT, () => {
   console.log(
