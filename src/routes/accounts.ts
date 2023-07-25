@@ -7,8 +7,10 @@ import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
 import { getTicket } from "../ticket-queue";
 import rTracer from "cls-rtracer";
+import { incrementTxRequestCount, incrementTxCount } from "../index";
 
 export default async function (req: Request, res: Response) {
+  incrementTxRequestCount();
   const client = await connect();
 
   let account;
@@ -113,7 +115,7 @@ export default async function (req: Request, res: Response) {
           });
         console.log("inserted big query");
       }
-
+      incrementTxCount();
       res.send(response);
     }
   } catch (err) {

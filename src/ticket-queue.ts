@@ -39,7 +39,7 @@ async function populateTicketQueue(client: Client) {
 export async function getTicket(client: Client) {
   // Check Available Tickets ---------------------------------------------------
   if (!populateTicketQueuePromise) {
-    populateTicketQueuePromise = populateTicketQueue(client).then(() => {
+    populateTicketQueuePromise = populateTicketQueue(client).finally(() => {
       populateTicketQueuePromise = null;
     });
   }
