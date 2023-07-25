@@ -39,14 +39,14 @@ export function getClientCreatedDate(): number {
   return _clientCreatedDate;
 }
 
-export async function connect(client: Client): Promise<Client> {
+export async function connect(): Promise<Client> {
   if (!client.isConnected()) {
     await client.connect();
   }
   return client;
 }
 
-export async function disconnect(client: Client): Promise<void> {
+export async function disconnect(): Promise<void> {
   await client.disconnect();
 }
 
@@ -68,12 +68,12 @@ export async function resetClient(reqId: string) {
   }
 
   console.log(`${reqId}| resetting client...`);
-  await disconnect(client);
+  await disconnect();
   console.log(`${reqId}| successfully disconnected 'by user'`);
 
   const newClientData = await createClient();
   client = newClientData.client;
   _clientCreatedDate = newClientData.clientCreatedDate;
-  await connect(client);
+  await connect();
   console.log(`${reqId}| client reconnected.`);
 }
