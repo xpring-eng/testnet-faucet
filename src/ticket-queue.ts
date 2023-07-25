@@ -13,6 +13,8 @@ import rTracer from "cls-rtracer";
 let ticketQueue: number[] = [];
 let createTicketsPromise: Promise<void | TxResponse<TicketCreate>> = null;
 
+let populateTicketQueuePromise: Promise<void> | null = null;
+
 async function populateTicketQueue(client: Client) {
   // Get account info
   const response = await client.request({
@@ -22,6 +24,9 @@ async function populateTicketQueue(client: Client) {
     limit: 300,
   });
   console.log("Available Tickets:", response.result.account_objects.length);
+
+  // Empty the ticket queue before refilling it
+  ticketQueue = [];
 
   // Populate ticketQueue with existing ticket sequence numbers
   for (let ticketObject of response.result.account_objects) {
@@ -33,7 +38,12 @@ async function populateTicketQueue(client: Client) {
 // TODO: Populate the ticket queue on disconnect or every once in a while to account for tickets used by other systems
 export async function getTicket(client: Client) {
   // Check Available Tickets ---------------------------------------------------
-  await populateTicketQueue(client);
+  if (!populateTicketQueuePromise) {
+    populateTicketQueuePromise = populateTicketQueue(client).then(() => {
+      populateTicketQueuePromise = null;
+    });
+  }
+  await populateTicketQueuePromise;
   if (ticketQueue.length < config.MIN_TICKET_COUNT && !createTicketsPromise) {
     const ticketsToCreate = Math.min(
       140,
@@ -54,7 +64,6 @@ export async function getTicket(client: Client) {
         }
       )
       .then((response) => {
-        let ticketsCreated = 0;
         // Populate the ticket queue with newly created tickets
         (response.result.meta as TransactionMetadata).AffectedNodes.forEach(
           (node: any) => {
@@ -62,7 +71,6 @@ export async function getTicket(client: Client) {
               isCreatedNode(node) &&
               node.CreatedNode.LedgerEntryType === "Ticket"
             ) {
-              ticketsCreated++;
               ticketQueue.push(
                 (node.CreatedNode.NewFields as Partial<Ticket>).TicketSequence
               );
