@@ -22,7 +22,6 @@ const server = app.listen(config.PORT, () => {
 });
 server.setTimeout(20 * 1000);
 
-// In your index.js or wherever txCount is defined
 export let txCount = 0;
 export let txRequestCount = 0;
 export function incrementTxCount() {
