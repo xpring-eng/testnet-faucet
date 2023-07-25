@@ -1,8 +1,7 @@
 import { Client } from "xrpl";
 import { config } from "./config";
 
-let client = new Client(config.RIPPLED_URI);
-let clientCreatedDate: number | null = Date.now();
+let { client, clientCreatedDate: _clientCreatedDate } = createClient();
 
 client.on("error", (errorCode, errorMessage) => {
   console.log("Client error: " + errorCode + ": " + errorMessage);
@@ -18,49 +17,63 @@ client.on("disconnected", (code) => {
   console.log("Client disconnected, code:", code);
 });
 
-export function createClient(): Client {
-  if (client) {
-    return client;
+export function createClient(existingClient?: Client): {
+  client: Client;
+  clientCreatedDate: number;
+} {
+  let createdDate: number;
+  let client: Client;
+
+  if (existingClient) {
+    client = existingClient;
+    createdDate = _clientCreatedDate;
+  } else {
+    client = new Client(config.RIPPLED_URI);
+    createdDate = Date.now();
   }
-  client = new Client(config.RIPPLED_URI);
-  clientCreatedDate = Date.now();
-  return client;
+
+  return { client, clientCreatedDate: createdDate };
 }
 
-export function getClientCreationDate(): number | null {
-  return clientCreatedDate;
+export function getClientCreatedDate(): number {
+  return _clientCreatedDate;
 }
 
-export async function connect(): Promise<Client> {
+export async function connect(client: Client): Promise<Client> {
   if (!client.isConnected()) {
     await client.connect();
   }
   return client;
 }
 
-export async function disconnect(): Promise<void> {
+export async function disconnect(client: Client): Promise<void> {
   await client.disconnect();
 }
+
 export const MIN_RESET_INTERVAL_MS = 10 * 1000;
 
 export async function resetClient(reqId: string) {
-  const clientCreationDate = getClientCreationDate();
+  const clientCreationDate = getClientCreatedDate();
 
   if (clientCreationDate) {
     const clientAge = Date.now() - clientCreationDate;
     if (clientAge < MIN_RESET_INTERVAL_MS) {
       console.log(
-        `${reqId}| not resetting client, age=${clientAge} ms < 10 sec`
+        `${reqId}| not resetting client, age=${clientAge} ms < ${
+          MIN_RESET_INTERVAL_MS / 1000
+        } sec`
       );
-      return; // prevent client from being reset more often than once per 10 sec
+      return; // prevent client from being reset more often than once per MIN_RESET_INTERVAL_MS / 1000 sec
     }
   }
 
   console.log(`${reqId}| resetting client...`);
-  await disconnect();
+  await disconnect(client);
   console.log(`${reqId}| successfully disconnected 'by user'`);
 
-  await createClient();
-  await connect();
+  const newClientData = await createClient();
+  client = newClientData.client;
+  _clientCreatedDate = newClientData.clientCreatedDate;
+  await connect(client);
   console.log(`${reqId}| client reconnected.`);
 }
