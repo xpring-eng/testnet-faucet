@@ -11,7 +11,7 @@ import { config } from "./config";
 import rTracer from "cls-rtracer";
 
 let ticketQueue: number[] = [];
-let createTicketsPromise: Promise<void | TxResponse<TicketCreate>>;
+let createTicketsPromise: Promise<void | TxResponse<TicketCreate>> = null;
 
 async function populateTicketQueue(client: Client) {
   // Get account info
@@ -19,8 +19,9 @@ async function populateTicketQueue(client: Client) {
     command: "account_objects",
     account: fundingWallet.address,
     type: "ticket",
+    limit: 300,
   });
-  console.log("Available Tickets:", response.result.account_objects);
+  console.log("Available Tickets:", response.result.account_objects.length);
 
   // Populate ticketQueue with existing ticket sequence numbers
   for (let ticketObject of response.result.account_objects) {
@@ -45,10 +46,7 @@ export async function getTicket(client: Client) {
       .submitAndWait(
         {
           TransactionType: "TicketCreate",
-          TicketCount: Math.min(
-            140,
-            config.MAX_TICKET_COUNT - ticketQueue.length
-          ),
+          TicketCount: ticketsToCreate,
           Account: fundingWallet.address,
         },
         {

@@ -63,7 +63,6 @@ export default async function (req: Request, res: Response) {
       fundingWallet
     );
     const status = result.engine_result;
-    // ... handle the rest of the logic as you have it currently
     const response = {
       account,
       amount: Number(amount),
