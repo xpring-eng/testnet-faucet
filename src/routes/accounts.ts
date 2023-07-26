@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { connect, resetClient } from "../client";
 import { getDestinationWallet } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
+import { Account } from "../types";
 import { fundingWallet } from "../wallet";
 import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
@@ -13,7 +14,7 @@ export default async function (req: Request, res: Response) {
   incrementTxRequestCount();
   const client = await connect();
 
-  let account;
+  let account: Account;
 
   if (req.body.destination) {
     try {
@@ -25,7 +26,12 @@ export default async function (req: Request, res: Response) {
       });
     }
   } else {
-    account = Wallet.generate();
+    let wallet = Wallet.generate();
+    account = {
+      xAddress: wallet.getXAddress(),
+      address: wallet.classicAddress,
+      classicAddress: wallet.classicAddress,
+    };
     console.log(`${rTracer.id()} | Generated new account: ${account.address}`);
   }
 
@@ -87,8 +93,7 @@ export default async function (req: Request, res: Response) {
             user_agent: userAgent,
             usage_context: usageContext,
             memos: memos,
-            account:
-              "xAddress" in account ? account.xAddress : account.getXAddress(),
+            account: account.xAddress,
             amount: amount,
           },
         ];
