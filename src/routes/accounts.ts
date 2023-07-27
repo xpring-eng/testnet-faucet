@@ -69,11 +69,19 @@ export default async function (req: Request, res: Response) {
   }
 
   try {
-    const result = await submitPaymentWithTicket(
-      payment,
-      client,
-      fundingWallet
-    );
+    let result;
+    try {
+      result = await submitPaymentWithTicket(payment, client, fundingWallet);
+    } catch (err) {
+      console.log(`${rTracer.id()} | Failed to submit payment: ${err}`);
+      res.status(500).send({
+        error: "Unable to fund account. Try again later",
+        account,
+      });
+      await resetClient(rTracer.id().toString());
+      return;
+    }
+
     const status = result.engine_result;
     const response = {
       account,
@@ -130,10 +138,9 @@ export default async function (req: Request, res: Response) {
   } catch (err) {
     console.log(`${rTracer.id()}| ${err}`);
     res.status(500).send({
-      error: "Unable to fund account. Server load is too high. Try again later",
+      error: "Internal Server Error",
       account,
     });
-    await resetClient(rTracer.id().toString());
   }
 }
 
