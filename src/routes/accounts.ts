@@ -64,6 +64,10 @@ export default async function (req: Request, res: Response) {
     Destination: account.address,
     Sequence: 0,
   };
+  if (typeof account.tag === "number") {
+    payment.DestinationTag = account.tag;
+  }
+
   try {
     const result = await submitPaymentWithTicket(
       payment,
