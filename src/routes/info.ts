@@ -1,12 +1,12 @@
 const os = require("os");
 import { Request, Response } from "express";
-import { connect, resetClient } from "../client";
+import { getConnectedClient, resetClient } from "../client";
 import { fundingWallet } from "../wallet";
 import { checkForWarning, format } from "../utils";
 import { AccountInfoResponse, FeeResponse, ServerInfoResponse } from "xrpl";
 import * as packageJson from "../../package.json";
 export default async function (req: Request, res: Response) {
-  let client = await connect();
+  let client = await getConnectedClient();
   try {
     const serverInfo: ServerInfoResponse = await client.request({
       command: "server_info",

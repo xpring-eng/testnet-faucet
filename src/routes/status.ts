@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { connect, resetClient } from "../client";
+import { getConnectedClient, resetClient } from "../client";
 import { checkForWarning, format } from "../utils";
 import { FeeResponse, ServerInfoResponse } from "xrpl";
 
 export default async function (req: Request, res: Response) {
-  let client = await connect();
+  let client = await getConnectedClient();
   try {
     const serverInfo: ServerInfoResponse = await client.request({
       command: "server_info",

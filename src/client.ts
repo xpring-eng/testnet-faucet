@@ -2,6 +2,7 @@ import { Client } from "xrpl";
 import { config } from "./config";
 
 let { client, clientCreatedDate: _clientCreatedDate } = createClient();
+let connecting = false;
 
 client.on("error", (errorCode, errorMessage) => {
   console.log("Client error: " + errorCode + ": " + errorMessage);
@@ -39,9 +40,22 @@ export function getClientCreatedDate(): number {
   return _clientCreatedDate;
 }
 
-export async function connect(): Promise<Client> {
-  if (!client.isConnected()) {
-    await client.connect();
+export async function getConnectedClient(): Promise<Client> {
+  // If the client is not defined, not connected, and not currently being connected
+  if (!client || (!client.isConnected() && !connecting)) {
+    connecting = true;
+    try {
+      if (!client) {
+        const clientInfo = await createClient();
+        client = clientInfo.client;
+        _clientCreatedDate = clientInfo.clientCreatedDate;
+      }
+      if (!client.isConnected()) {
+        await client.connect();
+      }
+    } finally {
+      connecting = false;
+    }
   }
   return client;
 }
@@ -74,6 +88,6 @@ export async function resetClient(reqId: string) {
   const newClientData = await createClient();
   client = newClientData.client;
   _clientCreatedDate = newClientData.clientCreatedDate;
-  await connect();
+  await getConnectedClient();
   console.log(`${reqId}| client reconnected.`);
 }

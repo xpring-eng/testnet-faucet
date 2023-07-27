@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { connect, resetClient } from "../client";
-import { getDestinationWallet } from "../destination-wallet";
+import { getConnectedClient, resetClient } from "../client";
+import { getDestinationAccount } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
 import { Account } from "../types";
 import { fundingWallet } from "../wallet";
@@ -12,13 +12,13 @@ import { incrementTxRequestCount, incrementTxCount } from "../index";
 
 export default async function (req: Request, res: Response) {
   incrementTxRequestCount();
-  const client = await connect();
+  const client = await getConnectedClient();
 
   let account: Account;
 
   if (req.body.destination) {
     try {
-      account = getDestinationWallet(req.body.destination);
+      account = getDestinationAccount(req.body.destination);
       console.log(`${rTracer.id()} | User-specified destination: ${account}`);
     } catch {
       return res.status(400).send({

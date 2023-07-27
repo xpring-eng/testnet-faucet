@@ -1,7 +1,7 @@
 import { classicAddressToXAddress, isValidClassicAddress, xAddressToClassicAddress } from 'ripple-address-codec';
 import { Account } from './types';
 
-export function getDestinationWallet(address?: string): Account {
+export function getDestinationAccount(address?: string): Account {
   if(!isValidClassicAddress(address)) {
     throw Error('Invalid destination')
   }
