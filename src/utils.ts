@@ -8,6 +8,7 @@ export function format(seconds: number) {
 
   return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
 }
+
 export function checkForWarning(s: any) {
   if (s && s.warning) {
     console.log("GOT WARNING: " + s.warning);
