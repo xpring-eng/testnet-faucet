@@ -23,17 +23,9 @@ export default async function (req: Request, res: Response) {
       queue: true,
     });
     console.log(
-      "Returning /info - ledgerVersion: " +
-        serverInfo.result.info.build_version +
-        ", age: " +
-        serverInfo.result.info.validated_ledger.age +
-        ", expected_ledger_size: " +
-        feeInfo.result.expected_ledger_size +
-        ", open_ledger_fee: " +
-        feeInfo.result.drops.open_ledger_fee +
-        ", hostID: " +
-        serverInfo.result.info.hostid
+      `Returning /info - ledgerVersion: ${serverInfo.result.info.build_version}, age: ${serverInfo.result.info.validated_ledger.age}, expected_ledger_size: ${feeInfo.result.expected_ledger_size}, open_ledger_fee: ${feeInfo.result.drops.open_ledger_fee}, hostID: ${serverInfo.result.info.hostid}`
     );
+
     const processUptime = process.uptime();
     const osUptime = os.uptime();
     res.send({

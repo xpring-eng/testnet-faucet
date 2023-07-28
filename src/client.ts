@@ -1,5 +1,6 @@
 import { Client } from "xrpl";
 import { config } from "./config";
+import { populateTicketQueue } from "./ticket-queue";
 
 let { client, clientCreatedDate: _clientCreatedDate } = createClient();
 let connecting = false;
@@ -52,6 +53,7 @@ export async function getConnectedClient(): Promise<Client> {
       }
       if (!client.isConnected()) {
         await client.connect();
+        await populateTicketQueue(client);
       }
     } finally {
       connecting = false;

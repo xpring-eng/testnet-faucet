@@ -96,41 +96,12 @@ export default async function (req: Request, res: Response) {
       );
 
       if (config.BIGQUERY_PROJECT_ID) {
-        const { userAgent = "", usageContext = "" } = req.body;
-        const memos = req.body.memos
-          ? req.body.memos.map((memo: any) => ({ memo }))
-          : [];
-        const rows = [
-          {
-            user_agent: userAgent,
-            usage_context: usageContext,
-            memos: memos,
-            account: account.xAddress,
-            amount: amount,
-          },
-        ];
-        const bigquery = new BigQuery({
-          projectId: config.BIGQUERY_PROJECT_ID,
-          credentials: {
-            client_email: config.BIGQUERY_CLIENT_EMAIL,
-            private_key: config.BIGQUERY_PRIVATE_KEY,
-          },
-        });
-
-        bigquery
-          .dataset(config.BIGQUERY_DATASET_ID)
-          .table(config.BIGQUERY_TABLE_ID)
-          .insert(rows, (error) => {
-            if (error) {
-              console.warn(
-                "WARNING: Failed to insert into BigQuery",
-                JSON.stringify(error, null, 2)
-              );
-            } else {
-              console.log(`Inserted ${rows.length} rows`);
-            }
-          });
-        console.log("inserted big query");
+        try {
+          await insertIntoBigQuery(account, amount, req.body);
+          console.log("inserted big query");
+        } catch (error) {
+          console.warn(`Failed to insert into BigQuery: ${error}`);
+        }
       }
       incrementTxCount();
       res.send(response);
@@ -142,6 +113,50 @@ export default async function (req: Request, res: Response) {
       account,
     });
   }
+}
+async function insertIntoBigQuery(
+  account: Account,
+  amount: string,
+  reqBody: any
+): Promise<void> {
+  const { userAgent = "", usageContext = "" } = reqBody;
+  const memos = reqBody.memos
+    ? reqBody.memos.map((memo: any) => ({ memo }))
+    : [];
+  const rows = [
+    {
+      user_agent: userAgent,
+      usage_context: usageContext,
+      memos: memos,
+      account: account.xAddress,
+      amount: amount,
+    },
+  ];
+  const bigquery = new BigQuery({
+    projectId: config.BIGQUERY_PROJECT_ID,
+    credentials: {
+      client_email: config.BIGQUERY_CLIENT_EMAIL,
+      private_key: config.BIGQUERY_PRIVATE_KEY,
+    },
+  });
+
+  return new Promise((resolve, reject) => {
+    bigquery
+      .dataset(config.BIGQUERY_DATASET_ID)
+      .table(config.BIGQUERY_TABLE_ID)
+      .insert(rows, (error) => {
+        if (error) {
+          console.warn(
+            "WARNING: Failed to insert into BigQuery",
+            JSON.stringify(error, null, 2)
+          );
+          reject(error);
+        } else {
+          console.log(`Inserted ${rows.length} rows`);
+          resolve();
+        }
+      });
+  });
 }
 
 async function submitPaymentWithTicket(
