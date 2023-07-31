@@ -26,7 +26,7 @@ export default async function (req: Request, res: Response) {
       });
     }
   } else {
-    let wallet = Wallet.generate();
+    const wallet = Wallet.generate();
     account = {
       xAddress: wallet.getXAddress(),
       address: wallet.classicAddress,
