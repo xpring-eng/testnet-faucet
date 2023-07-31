@@ -92,7 +92,6 @@ export async function getTicket(client: Client) {
   if (ticketQueue.length === 0) {
     console.log(`${rTracer.id()} | Waiting for tickets to be created.`);
     await createTicketsPromise;
-    return ticketQueue.shift();
   }
 
   const ticket = ticketQueue.shift();

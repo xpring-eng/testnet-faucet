@@ -5,6 +5,9 @@ import { populateTicketQueue } from "./ticket-queue";
 let { client, clientCreatedDate: _clientCreatedDate } = createClient();
 let connecting = false;
 
+// connect the client and populate the ticket queue immediately after creation
+getConnectedClient();
+
 client.on("error", (errorCode, errorMessage) => {
   console.log("Client error: " + errorCode + ": " + errorMessage);
 });
@@ -14,8 +17,6 @@ client.on("connected", () => {
 });
 
 client.on("disconnected", (code) => {
-  // code - [close code](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent) sent by the server
-  // will be 1000 if this was normal closure
   console.log("Client disconnected, code:", code);
 });
 
@@ -55,6 +56,9 @@ export async function getConnectedClient(): Promise<Client> {
         await client.connect();
         await populateTicketQueue(client);
       }
+    } catch (error) {
+      console.error(`Failed to get connected client. Error: ${error.message}`);
+      throw error;
     } finally {
       connecting = false;
     }
@@ -91,5 +95,6 @@ export async function resetClient(reqId: string) {
   client = newClientData.client;
   _clientCreatedDate = newClientData.clientCreatedDate;
   await getConnectedClient();
+  await populateTicketQueue(client); // Populate the ticket queue after reconnection
   console.log(`${reqId}| client reconnected.`);
 }
