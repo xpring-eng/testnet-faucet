@@ -168,17 +168,13 @@ async function submitPaymentWithTicket(
   let retryCount = 0;
   let result;
   while (retryCount < maxRetries) {
-    try {
-      payment.TicketSequence = await getTicket(client);
-      result = (await client.submit(payment, { wallet: fundingWallet })).result;
-      if (result.engine_result === "tefNO_TICKET") {
-        retryCount++;
-        console.log(`Retrying transaction (${retryCount}/${maxRetries})`);
-      } else {
-        break;
-      }
-    } catch (error) {
-      throw error; // Let the outer try-catch handle other errors
+    payment.TicketSequence = await getTicket(client);
+    result = (await client.submit(payment, { wallet: fundingWallet })).result;
+    if (result.engine_result === "tefNO_TICKET") {
+      retryCount++;
+      console.log(`Retrying transaction (${retryCount}/${maxRetries})`);
+    } else {
+      break;
     }
   }
 
