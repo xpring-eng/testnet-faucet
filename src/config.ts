@@ -1,57 +1,55 @@
-export interface Config {
-  NODE_ENV: "production" | "development"
-  PORT: string
-  RIPPLED_URI: string
-  FUNDING_ADDRESS: string
-  FUNDING_SECRET: string
-  XRP_AMOUNT: string
-  MAX_AMOUNT: string
-  MIN_TICKET_COUNT: number
-  MAX_TICKET_COUNT: number
+import dotenv, { DotenvParseOutput } from "dotenv";
 
-  BIGQUERY_DATASET_ID?: string
-  BIGQUERY_TABLE_ID?: string
-  BIGQUERY_CLIENT_EMAIL?: string
-  BIGQUERY_PROJECT_ID?: string
-  BIGQUERY_PRIVATE_KEY?: string
+export interface ConfigFile {
+  NODE_ENV?: "production" | "development";
+  PORT?: string;
+  RIPPLED_URI: string;
+  FUNDING_ADDRESS?: string;
+  FUNDING_SECRET: string;
+  XRP_AMOUNT?: string;
+  MAX_AMOUNT?: string;
+  MIN_TICKET_COUNT?: number;
+  MAX_TICKET_COUNT?: number;
+
+  // Optional - See "defaults" for default values
+  BIGQUERY_DATASET_ID?: string;
+  BIGQUERY_TABLE_ID?: string;
+  BIGQUERY_CLIENT_EMAIL?: string;
+  BIGQUERY_PROJECT_ID?: string;
+  BIGQUERY_PRIVATE_KEY?: string;
 }
 
-const required: (keyof Config)[] = [
-  'RIPPLED_URI',
-  'FUNDING_SECRET'
-]
+export interface Config extends Required<ConfigFile> {}
 
-const defaults: Partial<Record<keyof Partial<Config>, any>> = {
-  PORT: '3000',
-  XRP_AMOUNT: '10000',
-  MAX_AMOUNT: '1000000',
+const required: (keyof ConfigFile)[] = ["RIPPLED_URI", "FUNDING_SECRET"];
+
+const defaults: Partial<Record<keyof Partial<ConfigFile>, any>> = {
+  PORT: "3000",
+  XRP_AMOUNT: "10000",
+  MAX_AMOUNT: "1000000",
   MIN_TICKET_COUNT: 100,
   MAX_TICKET_COUNT: 240,
-}
+};
 
-const dotenv = require('dotenv')
-
-const result = dotenv.config()
+const result = dotenv.config();
 
 if (result.error) {
-  throw result.error
+  throw result.error;
 }
 
-const config = result.parsed;
+let config: DotenvParseOutput & typeof defaults = {
+  ...defaults,
+  ...result.parsed,
+};
 
 // Validate required configuration options
-required.forEach((field: string) => {
-  if(!(field in config)) {
-    throw new Error(`Config property ${field} is required`)
+required.forEach((field) => {
+  if (!(field in config)) {
+    throw new Error(`Config property ${field} is required`);
   }
 });
 
-(new Map(Object.entries(defaults))).forEach((value: string, key: any) => {
-  if(!(key in config)) {
-    config[key] = value
-  }
-})
+// Ensure config is treated as fully resolved Config, not ConfigFile
+const finalConfig: Config = config as Config;
 
-export {
-  config
-}
+export { finalConfig as config };

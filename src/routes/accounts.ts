@@ -47,7 +47,7 @@ export default async function (req: Request, res: Response) {
     let requestedAmountNumber = Number(req.body.xrpAmount);
     if (
       requestedAmountNumber < 0 ||
-      requestedAmountNumber > config.MAX_AMOUNT ||
+      requestedAmountNumber > Number(config.MAX_AMOUNT) ||
       typeof requestedAmountNumber !== "number"
     ) {
       return res.status(400).send({
