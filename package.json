@@ -1,19 +1,28 @@
 {
   "name": "testnet-faucet",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/src/index.js",
   "scripts": {
-    "start": "node index.js",
+    "build": "tsc",
+    "prestart": "npm run build",
+    "start": "node .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@google-cloud/bigquery": "^6.2.0",
+    "cls-rtracer": "^2.6.3",
     "cors": "^2.8.4",
+    "dotenv": "^16.3.1",
     "express": "^4.16.3",
     "ripple-address-codec": "^4.1.0",
-    "ripple-lib": "^1.6.4"
+    "xrpl": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17",
+    "typescript": "^5.1.6"
   }
 }

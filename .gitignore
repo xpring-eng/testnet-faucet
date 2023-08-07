@@ -23,21 +23,15 @@ coverage
 # Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
 
-# Bower dependency directory (https://bower.io/)
-bower_components
-
 # node-waf configuration
 .lock-wscript
 
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
+# Ignore dist folder, built from tsc
+dist
 
 # Dependency directories
 node_modules/
 jspm_packages/
-
-# TypeScript v1 declaration files
-typings/
 
 # Optional npm cache directory
 .npm
@@ -71,3 +65,7 @@ typings/
 
 # Serverless directories
 .serverless
+
+# Ignore IntelliJ files
+.idea
+*.iml
