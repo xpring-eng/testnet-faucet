@@ -78,13 +78,13 @@ export async function getTicket(client: Client) {
           }
         );
         console.log(
-          `Created ${createdTickets} tickets. Tx: ${response.result.hash}`
+          `Created ${createdTickets} tickets. Tx hash: ${response.result?.hash}`
         );
         createTicketsPromise = null;
       })
-      .catch((response) => {
+      .catch((error) => {
         console.log(
-          `Failed to create tickets. Tx: ${response.result.hash}, Status Code: ${response.result.status}`
+          `Failed to create tickets. Error: ${error}`
         );
       });
   }
