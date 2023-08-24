@@ -84,7 +84,7 @@ export async function getTicket(client: Client) {
       })
       .catch((error) => {
         console.log(
-          `Failed to create tickets. Error: ${JSON.stringify(error)}`
+          `Failed to create tickets. Error: ${JSON.stringify(error)} Message: ${error?.message}`
         );
       });
   }
