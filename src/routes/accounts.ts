@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getConnectedClient, resetClient } from "../client";
 import { getDestinationAccount } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
-import { Account } from "../types";
+import { Account, ResponseType } from "../types";
 import { fundingWallet } from "../wallet";
 import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
@@ -15,6 +15,7 @@ export default async function (req: Request, res: Response) {
   const client = await getConnectedClient();
 
   let account: Account;
+  let wallet: Wallet;
 
   if (req.body.destination) {
     try {
@@ -26,7 +27,7 @@ export default async function (req: Request, res: Response) {
       });
     }
   } else {
-    const wallet = Wallet.generate();
+    wallet = Wallet.generate();
     account = {
       xAddress: wallet.getXAddress(),
       address: wallet.classicAddress,
@@ -83,10 +84,15 @@ export default async function (req: Request, res: Response) {
     }
 
     const status = result.engine_result;
-    const response = {
-      account,
-      amount: Number(amount),
+
+    const response: ResponseType = {
+      account: account,
+      amount: amount,
     };
+
+    if (wallet.seed) {
+      response.seed = wallet.seed;
+    }
 
     if (status === "tesSUCCESS" || status === "terQUEUED") {
       console.log(
