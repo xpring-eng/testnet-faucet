@@ -4,7 +4,7 @@ export interface Account {
   address: string;
   tag?: number | boolean;
 }
-export interface ResponseType {
+export interface FundedResponse {
   account: Account;
   amount: string;
   seed?: string;

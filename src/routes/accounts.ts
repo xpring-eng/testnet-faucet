@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getConnectedClient, resetClient } from "../client";
 import { getDestinationAccount } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
-import { Account, ResponseType } from "../types";
+import { Account, FundedResponse } from "../types";
 import { fundingWallet } from "../wallet";
 import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
@@ -85,7 +85,7 @@ export default async function (req: Request, res: Response) {
 
     const status = result.engine_result;
 
-    const response: ResponseType = {
+    const response: FundedResponse = {
       account: account,
       amount: amount,
     };
