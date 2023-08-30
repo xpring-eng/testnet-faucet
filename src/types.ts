@@ -6,6 +6,6 @@ export interface Account {
 }
 export interface FundedResponse {
   account: Account;
-  amount: string;
+  amount: number;
   seed?: string;
 }

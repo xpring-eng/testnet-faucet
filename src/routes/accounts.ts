@@ -87,7 +87,7 @@ export default async function (req: Request, res: Response) {
 
     const response: FundedResponse = {
       account: account,
-      amount: amount,
+      amount: Number(amount),
     };
 
     if (wallet.seed) {
