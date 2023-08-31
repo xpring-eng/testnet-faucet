@@ -90,7 +90,7 @@ export default async function (req: Request, res: Response) {
       amount: Number(amount),
     };
 
-    if (wallet.seed) {
+    if (wallet && wallet.seed) {
       response.seed = wallet.seed;
     }
 
