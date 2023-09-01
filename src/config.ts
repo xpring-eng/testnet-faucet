@@ -17,6 +17,15 @@ export interface ConfigFile {
   BIGQUERY_CLIENT_EMAIL?: string;
   BIGQUERY_PROJECT_ID?: string;
   BIGQUERY_PRIVATE_KEY?: string;
+  
+
+  // 
+  CASPIAN_ENDPOINT?: string;
+  CASPIAN_API_KEY?: string;
+  CASPIAN_PRODUCER_NAME?: string;
+  CASPIAN_ENTITY_NAME?: string;
+  CASPIAN_SCHEMA_TYPE?: string;
+  CASPIAN_SCHEMA_VERSION?: number;
 }
 
 export interface Config extends Required<ConfigFile> {}
