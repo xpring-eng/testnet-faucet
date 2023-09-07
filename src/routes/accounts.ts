@@ -210,7 +210,7 @@ async function insertIntoCaspian(
         message: `Failed to send data to Caspian: ${
           error.message || "Unknown error"
         }`,
-        attemptedData: postData, // Here, we include the data that was being sent
+        attemptedData: postData,
       });
     });
 
