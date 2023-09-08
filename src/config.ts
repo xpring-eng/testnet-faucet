@@ -11,6 +11,13 @@ export interface ConfigFile {
   MIN_TICKET_COUNT?: number;
   MAX_TICKET_COUNT?: number;
 
+  // Optional - See "defaults" for default values
+  BIGQUERY_DATASET_ID?: string;
+  BIGQUERY_TABLE_ID?: string;
+  BIGQUERY_CLIENT_EMAIL?: string;
+  BIGQUERY_PROJECT_ID?: string;
+  BIGQUERY_PRIVATE_KEY?: string;
+
   CASPIAN_API_KEY?: string;
   CASPIAN_ENDPOINT?: string;
   CASPIAN_ENTITY_NAME?: string;

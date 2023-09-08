@@ -4,12 +4,11 @@ import { getDestinationAccount } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
 import { Account, FundedResponse } from "../types";
 import { fundingWallet } from "../wallet";
-import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
 import { getTicket } from "../ticket-queue";
 import rTracer from "cls-rtracer";
 import { incrementTxRequestCount, incrementTxCount } from "../index";
-const https = require("https");
+import { insertIntoCaspian } from "../logging";
 
 export default async function (req: Request, res: Response) {
   incrementTxRequestCount();
@@ -104,7 +103,12 @@ export default async function (req: Request, res: Response) {
 
       if (config.CASPIAN_API_KEY) {
         try {
-          await insertIntoCaspian(account, Number(amount), req.body, client);
+          await insertIntoCaspian(
+            account,
+            Number(amount),
+            req.body,
+            client.networkID
+          );
           console.log("Data sent to Caspian successfully");
         } catch (error) {
           console.warn("Caspian Insertion Error:", error);
@@ -146,75 +150,4 @@ async function submitPaymentWithTicket(
   }
 
   return result;
-}
-
-async function insertIntoCaspian(
-  account: Account,
-  amount: number,
-  reqBody: any,
-  client: Client
-) {
-  const dataPayload = [
-    {
-      user_agent: reqBody.userAgent || "",
-      usage_context: reqBody.usageContext || "",
-      memos: reqBody.memos || [],
-      account: account.xAddress,
-      amount: amount,
-      network: client.networkID,
-    },
-  ];
-
-  const postData = JSON.stringify({
-    producerName: config.CASPIAN_PRODUCER_NAME,
-    entityName: config.CASPIAN_ENTITY_NAME,
-    schemaType: config.CASPIAN_SCHEMA_TYPE,
-    schemaVersion: Math.round(config.CASPIAN_SCHEMA_VERSION),
-    data: dataPayload,
-    timestamp: Date.now(),
-  });
-  console.log(postData);
-
-  const options = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": config.CASPIAN_API_KEY,
-    },
-  };
-
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      config.CASPIAN_ENDPOINT,
-      options,
-      (res: Response) => {
-        let data = "";
-
-        res.on("data", (chunk) => {
-          data += chunk;
-        });
-
-        res.on("end", () => {
-          if (res.statusCode === 200 || res.statusCode === 201) {
-            resolve(data);
-          } else {
-            reject(`Failed to send data to Caspian: ${data}`);
-          }
-        });
-      }
-    );
-
-    req.on("error", (error: any) => {
-      console.error("Request Error:", error);
-      reject({
-        message: `Failed to send data to Caspian: ${
-          error.message || "Unknown error"
-        }`,
-        attemptedData: postData,
-      });
-    });
-
-    req.write(postData);
-    req.end();
-  });
 }

@@ -79,7 +79,7 @@ You should now have a running docker container with your custom config!
 
 (If you were trying the network_id change, you should see it show up in the docker logs on startup!)
 
-In ticket-queue.ts and account.ts, import `sendLedgerAccept` and `delayedLedgerAccept()` from utils.ts
+2. In ticket-queue.ts and account.ts, import `sendLedgerAccept` and `delayedLedgerAccept()` from utils.ts
 
 ```
 async function sendLedgerAccept(client: Client): Promise<unknown> {
