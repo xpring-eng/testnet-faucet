@@ -70,7 +70,7 @@ Please adjust the details as per your application requirements.
 
 ```
 
-### how to run tests on Standalone Node
+### How to run tests on Standalone Node
 
 1. Creating a custom standalone rippled instance
 
