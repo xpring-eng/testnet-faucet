@@ -8,7 +8,7 @@ import { config } from "../config";
 import { getTicket } from "../ticket-queue";
 import rTracer from "cls-rtracer";
 import { incrementTxRequestCount, incrementTxCount } from "../index";
-import { insertIntoCaspian } from "../logging";
+import { insertIntoCaspian, insertIntoBigQuery } from "../logging";
 
 export default async function (req: Request, res: Response) {
   incrementTxRequestCount();
@@ -114,6 +114,15 @@ export default async function (req: Request, res: Response) {
           console.warn("Caspian Insertion Error:", error);
         }
       }
+      if (config.BIGQUERY_PROJECT_ID) {
+        try {
+          await insertIntoBigQuery(account, amount, req.body);
+          console.log("inserted big query");
+        } catch (error) {
+          console.warn(`Failed to insert into BigQuery: ${error}`);
+        }
+      }
+
       incrementTxCount();
       res.send(response);
     }

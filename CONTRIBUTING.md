@@ -48,6 +48,28 @@ Please replace `CASPIAN_ENDPOINT`, `CASPIAN_API_KEY`, `CASPIAN_PRODUCER_NAME`, `
 `CASPIAN_SCHEMA_VERSION`: The version of your data schema.
 Remember to properly secure your environment variables, especially the CASPIAN_API_KEY, to prevent unauthorized access to your Caspian account.
 
+## Google BigQuery Integration
+
+This application logs and analyzes data using Google BigQuery. To use this feature, you need to provide the necessary BigQuery credentials through environment variables.
+
+### Run the server with BigQuery (Optional):
+
+Please replace `BIGQUERY_PROJECT_ID`, `BIGQUERY_CLIENT_EMAIL`, and `BIGQUERY_PRIVATE_KEY` with your actual project ID, client email, and private key.
+
+### BigQuery Environment Variables:
+
+- `BIGQUERY_PROJECT_ID`: The ID of your Google Cloud project.
+- `BIGQUERY_CLIENT_EMAIL`: The email address of your service account.
+- `BIGQUERY_PRIVATE_KEY`: The private key from your service account JSON key file. Be sure to include the full private key, including the header and footer.
+
+In case you are running this application in a trusted environment (like Google Cloud Platform), you don't need to provide the `BIGQUERY_CLIENT_EMAIL` and `BIGQUERY_PRIVATE_KEY`. The application will use Application Default Credentials (ADC) provided by the environment.
+
+```
+
+Please adjust the details as per your application requirements.
+
+```
+
 ### how to run tests on Standalone Node
 
 1. Creating a custom standalone rippled instance
