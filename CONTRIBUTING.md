@@ -30,6 +30,10 @@ Environment variables:
 
 - `XRP_AMOUNT`: The number of XRP to fund new accounts with. On the Testnet operated by Ripple, the current funding amount is 1,000 Testnet XRP.
 
+# Logging
+
+This application support both Caspian and BigQuery recording/loggings, see below for intructions.
+
 ## Caspian Integration
 
 This application logs and analyzes data using Caspian. To use this feature, you need to provide the necessary Caspian credentials through environment variables.
@@ -74,32 +78,34 @@ Please adjust the details as per your application requirements.
 
 1. Creating a custom standalone rippled instance
 
-Create a folder called config
+   1. Create a folder called `config`
 
-Create a config file like xrpl.js uses in it’s CI for making standalone rippled instances: https://github.com/XRPLF/xrpl.js/blob/main/.ci-config/rippled.cfg
+   2. Create a config file like xrpl.js uses in it’s CI for making standalone rippled instances: https://github.com/XRPLF/xrpl.js/blob/main/.ci-config/rippled.cfg
 
-If you want to change something, like increase the network_id, you can search the example config for the field name, then add it anywhere. For example:
+   If you want to change something, like increase the network_id, you can search the example config for the field name, then add it anywhere. For example:
 
-[network_id]
-1234
+   [network_id]
+   1234
 
-Go to right above config in the command line
+   3. Go to right above `config` in the command line
+   4. Use the `config `folder to start a docker container using a command like in xrpl.js tests. Source for command pre-modification + explanation of each piece.
 
-Use the config folder to start a docker container using a command like in xrpl.js tests. Source for command pre-modification + explanation of each piece.
+   Modifications:
 
-Modifications:
+   Changed the path to the `config` folder from `$PWD/.ci-config` to `$PWD/config:/config/`
 
-Changed the path to the config folder from $PWD/.ci-config to $PWD/config:/config/
+   NOTE: This is pointing to a FOLDER not a file!
 
-NOTE: This is pointing to a FOLDER not a file!
+   Also updated the xrpllabsofficial version to be it’s generic form instead of specifically the beta (which is currently in use for xrpl.js)
 
-Also updated the xrpllabsofficial version to be it’s generic form instead of specifically the beta (which is currently in use for xrpl.js)
+   ```
+   docker run -p 6006:6006 --interactive -t --volume $PWD/config:/config/ xrpllabsofficial -a --start
 
-docker run -p 6006:6006 --interactive -t --volume $PWD/config:/config/ xrpllabsofficial -a --start
+   ```
 
-You should now have a running docker container with your custom config!
+   You should now have a running docker container with your custom config!
 
-(If you were trying the network_id change, you should see it show up in the docker logs on startup!)
+   (If you were trying the network_id change, you should see it show up in the docker logs on startup!)
 
 2. In ticket-queue.ts and account.ts, import `sendLedgerAccept` and `delayedLedgerAccept()` from utils.ts
 
