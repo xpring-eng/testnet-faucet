@@ -4,11 +4,11 @@ import { getDestinationAccount } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
 import { Account, FundedResponse } from "../types";
 import { fundingWallet } from "../wallet";
-import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
 import { getTicket } from "../ticket-queue";
 import rTracer from "cls-rtracer";
 import { incrementTxRequestCount, incrementTxCount } from "../index";
+import { BigQuery } from "@google-cloud/bigquery";
 
 export default async function (req: Request, res: Response) {
   incrementTxRequestCount();
@@ -71,10 +71,20 @@ export default async function (req: Request, res: Response) {
 
   try {
     let result;
+    let paymentHash;
     try {
-      result = await submitPaymentWithTicket(payment, client, fundingWallet);
+      const signedPayment = await fundingWallet.sign(payment);
+      paymentHash = signedPayment.hash;
+      let response = await submitPaymentWithTicket(
+        payment,
+        client,
+        fundingWallet
+      );
+      ({ result, hash: paymentHash } = response);
     } catch (err) {
-      console.log(`${rTracer.id()} | Failed to submit payment: ${err}`);
+      console.log(
+        `${rTracer.id()} | Failed to submit payment ${paymentHash}: ${err}`
+      );
       res.status(500).send({
         error: "Unable to fund account. Try again later",
         account,
@@ -88,6 +98,7 @@ export default async function (req: Request, res: Response) {
     const response: FundedResponse = {
       account: account,
       amount: Number(amount),
+      paymentHash: paymentHash,
     };
 
     if (wallet && wallet.seed) {
@@ -98,7 +109,7 @@ export default async function (req: Request, res: Response) {
       console.log(
         `${rTracer.id()} | Funded ${
           account.address
-        } with ${amount} XRP (${status})`
+        } with ${amount} XRP (${status}), paymentHash: ${paymentHash}`
       );
 
       if (config.BIGQUERY_PROJECT_ID) {
@@ -109,6 +120,7 @@ export default async function (req: Request, res: Response) {
           console.warn(`Failed to insert into BigQuery: ${error}`);
         }
       }
+
       incrementTxCount();
       res.send(response);
     }
@@ -120,6 +132,7 @@ export default async function (req: Request, res: Response) {
     });
   }
 }
+
 async function insertIntoBigQuery(
   account: Account,
   amount: string,
@@ -173,12 +186,17 @@ async function submitPaymentWithTicket(
 ) {
   let retryCount = 0;
   let result;
+  let hash;
   while (retryCount < maxRetries) {
     payment.TicketSequence = await getTicket(client);
-    result = (await client.submit(payment, { wallet: fundingWallet })).result;
+    payment = await client.autofill(payment);
+    const { tx_blob: paymentBlob, hash: paymentHash } =
+      await fundingWallet.sign(payment);
+    hash = paymentHash;
+    result = (await client.submit(paymentBlob)).result;
     if (result.engine_result === "tefNO_TICKET") {
       retryCount++;
-      console.log(`Retrying transaction (${retryCount}/${maxRetries})`);
+      console.log(`Retrying transaction ${hash} (${retryCount}/${maxRetries})`);
     } else {
       break;
     }
@@ -188,5 +206,5 @@ async function submitPaymentWithTicket(
     throw new Error("Failed to submit transaction after multiple attempts");
   }
 
-  return result;
+  return { result, hash };
 }
