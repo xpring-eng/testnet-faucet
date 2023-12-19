@@ -4,11 +4,11 @@ import { getDestinationAccount } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
 import { Account, FundedResponse } from "../types";
 import { fundingWallet } from "../wallet";
+import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
 import { getTicket } from "../ticket-queue";
 import rTracer from "cls-rtracer";
 import { incrementTxRequestCount, incrementTxCount } from "../index";
-import { BigQuery } from "@google-cloud/bigquery";
 
 export default async function (req: Request, res: Response) {
   incrementTxRequestCount();
