@@ -71,19 +71,18 @@ export default async function (req: Request, res: Response) {
 
   try {
     let result;
-    let paymentHash;
+    const signedPayment = fundingWallet.sign(payment);
+    let transactionHash = signedPayment.hash;
     try {
-      const signedPayment = await fundingWallet.sign(payment);
-      paymentHash = signedPayment.hash;
       let response = await submitPaymentWithTicket(
         payment,
         client,
         fundingWallet
       );
-      ({ result, hash: paymentHash } = response);
+      ({ result, hash: transactionHash } = response);
     } catch (err) {
       console.log(
-        `${rTracer.id()} | Failed to submit payment ${paymentHash}: ${err}`
+        `${rTracer.id()} | Failed to submit payment ${transactionHash}: ${err}`
       );
       res.status(500).send({
         error: "Unable to fund account. Try again later",
@@ -98,7 +97,7 @@ export default async function (req: Request, res: Response) {
     const response: FundedResponse = {
       account: account,
       amount: Number(amount),
-      paymentHash: paymentHash,
+      paymentHash: transactionHash,
     };
 
     if (wallet && wallet.seed) {
@@ -109,7 +108,7 @@ export default async function (req: Request, res: Response) {
       console.log(
         `${rTracer.id()} | Funded ${
           account.address
-        } with ${amount} XRP (${status}), paymentHash: ${paymentHash}`
+        } with ${amount} XRP (${status}), paymentHash: ${transactionHash}`
       );
 
       if (config.BIGQUERY_PROJECT_ID) {
@@ -191,7 +190,7 @@ async function submitPaymentWithTicket(
     payment.TicketSequence = await getTicket(client);
     payment = await client.autofill(payment);
     const { tx_blob: paymentBlob, hash: paymentHash } =
-      await fundingWallet.sign(payment);
+      fundingWallet.sign(payment);
     hash = paymentHash;
     result = (await client.submit(paymentBlob)).result;
     if (result.engine_result === "tefNO_TICKET") {
@@ -203,7 +202,7 @@ async function submitPaymentWithTicket(
   }
 
   if (retryCount >= maxRetries) {
-    throw new Error("Failed to submit transaction after multiple attempts");
+    throw new Error(`Failed to submit transaction ${hash} with ticket after multiple attempts`);
   }
 
   return { result, hash };
