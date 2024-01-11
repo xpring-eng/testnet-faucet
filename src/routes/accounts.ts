@@ -190,8 +190,12 @@ async function submitPaymentWithTicket(
     if (result.engine_result === "tefNO_TICKET") {
       retryCount++;
       console.log(`Retrying transaction ${hash} (${retryCount}/${maxRetries})`);
-    } else {
+    } else if (result.engine_result === "tesSUCCESS") {
       break;
+    } else {
+      throw new Error(
+        `Failed to submit transaction ${hash} with ticket, error code: ${result.engine_result}`
+      );
     }
   }
 
