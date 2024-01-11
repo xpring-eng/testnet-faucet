@@ -69,17 +69,12 @@ export default async function (req: Request, res: Response) {
     payment.DestinationTag = account.tag;
   }
 
+  let transactionHash = fundingWallet.sign(payment).hash;
   try {
     let result;
-    const signedPayment = fundingWallet.sign(payment);
-    let transactionHash = signedPayment.hash;
     try {
-      let response = await submitPaymentWithTicket(
-        payment,
-        client,
-        fundingWallet
-      );
-      ({ result, hash: transactionHash } = response);
+      result = await submitPaymentWithTicket(payment, client, fundingWallet);
+      transactionHash = result.hash;
     } catch (err) {
       console.log(
         `${rTracer.id()} | Failed to submit payment ${transactionHash}: ${err}`
@@ -92,12 +87,11 @@ export default async function (req: Request, res: Response) {
       return;
     }
 
-    const status = result.engine_result;
-
+    const status = result.result.engine_result;
     const response: FundedResponse = {
       account: account,
       amount: Number(amount),
-      paymentHash: transactionHash,
+      transactionHash: transactionHash,
     };
 
     if (wallet && wallet.seed) {
@@ -202,7 +196,9 @@ async function submitPaymentWithTicket(
   }
 
   if (retryCount >= maxRetries) {
-    throw new Error(`Failed to submit transaction ${hash} with ticket after multiple attempts`);
+    throw new Error(
+      `Failed to submit transaction ${hash} with ticket after multiple attempts`
+    );
   }
 
   return { result, hash };
