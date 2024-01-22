@@ -69,12 +69,16 @@ export default async function (req: Request, res: Response) {
     payment.DestinationTag = account.tag;
   }
 
+  let transactionHash = fundingWallet.sign(payment).hash;
   try {
     let result;
     try {
       result = await submitPaymentWithTicket(payment, client, fundingWallet);
+      transactionHash = result.hash;
     } catch (err) {
-      console.log(`${rTracer.id()} | Failed to submit payment: ${err}`);
+      console.log(
+        `${rTracer.id()} | Failed to submit payment ${transactionHash}: ${err}`
+      );
       res.status(500).send({
         error: "Unable to fund account. Try again later",
         account,
@@ -83,11 +87,11 @@ export default async function (req: Request, res: Response) {
       return;
     }
 
-    const status = result.engine_result;
-
+    const status = result.result.engine_result;
     const response: FundedResponse = {
       account: account,
       amount: Number(amount),
+      transactionHash: transactionHash,
     };
 
     if (wallet && wallet.seed) {
@@ -98,7 +102,7 @@ export default async function (req: Request, res: Response) {
       console.log(
         `${rTracer.id()} | Funded ${
           account.address
-        } with ${amount} XRP (${status})`
+        } with ${amount} XRP (${status}), paymentHash: ${transactionHash}`
       );
 
       if (config.BIGQUERY_PROJECT_ID) {
@@ -109,6 +113,7 @@ export default async function (req: Request, res: Response) {
           console.warn(`Failed to insert into BigQuery: ${error}`);
         }
       }
+
       incrementTxCount();
       res.send(response);
     }
@@ -120,6 +125,7 @@ export default async function (req: Request, res: Response) {
     });
   }
 }
+
 async function insertIntoBigQuery(
   account: Account,
   amount: string,
@@ -173,20 +179,31 @@ async function submitPaymentWithTicket(
 ) {
   let retryCount = 0;
   let result;
+  let hash;
   while (retryCount < maxRetries) {
     payment.TicketSequence = await getTicket(client);
-    result = (await client.submit(payment, { wallet: fundingWallet })).result;
+    payment = await client.autofill(payment);
+    const { tx_blob: paymentBlob, hash: paymentHash } =
+      fundingWallet.sign(payment);
+    hash = paymentHash;
+    result = (await client.submit(paymentBlob)).result;
     if (result.engine_result === "tefNO_TICKET") {
       retryCount++;
-      console.log(`Retrying transaction (${retryCount}/${maxRetries})`);
-    } else {
+      console.log(`Retrying transaction ${hash} (${retryCount}/${maxRetries})`);
+    } else if (result.engine_result === "tesSUCCESS") {
       break;
+    } else {
+      throw new Error(
+        `Failed to submit transaction ${hash} with ticket, error code: ${result.engine_result}`
+      );
     }
   }
 
   if (retryCount >= maxRetries) {
-    throw new Error("Failed to submit transaction after multiple attempts");
+    throw new Error(
+      `Failed to submit transaction ${hash} with ticket after multiple attempts`
+    );
   }
 
-  return result;
+  return { result, hash };
 }

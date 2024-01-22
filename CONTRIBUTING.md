@@ -4,12 +4,21 @@ Funds new Testnet accounts
 
 ## Usage
 
-### Run the server:
+### Run the server (example):
 
+#### command line
 ```
 npm install
 NODE_ENV="production" PORT=3000 RIPPLED_URI="wss://s.altnet.rippletest.net:51233" FUNDING_ADDRESS=rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe FUNDING_SECRET=<secret> XRP_AMOUNT=10000
 npm start
+```
+
+#### using env file
+or fill out `.env` file using `.env.example` and run
+```
+npm install
+npm start 
+
 ```
 
 ### Fund a new account:
