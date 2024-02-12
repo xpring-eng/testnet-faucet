@@ -8,4 +8,5 @@ export interface FundedResponse {
   account: Account;
   amount: number;
   seed?: string;
+  paymentHash: string;
 }
