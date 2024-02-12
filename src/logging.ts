@@ -43,7 +43,7 @@ export async function insertIntoCaspian(
       return await response.json();
     } else {
       const errorMessage = await response.text();
-      throw new Error(`Failed to send data to Caspian: ${errorMessage}`);
+      throw new Error(`${errorMessage}`);
     }
   } catch (error) {
     console.error("Request Error:", error);
