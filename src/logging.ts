@@ -2,7 +2,7 @@ import { Account } from "./types";
 import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "./config";
 
-///Depending on your setup, you can use either Caspian or BigQuery for logging. Other databases may be added in the future
+// Depending on your setup, you can use either Caspian or BigQuery for logging. Other databases may be added in the future
 export async function insertIntoCaspian(
   account: Account,
   amount: number,
