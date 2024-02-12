@@ -2,7 +2,7 @@ import { Account } from "./types";
 import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "./config";
 
-///Depending on your setup, you can use either Caspian or BigQuery for logging. Other databases may be added in the future
+// Depending on your setup, you can use either Caspian or BigQuery for logging. Other databases may be added in the future
 export async function insertIntoCaspian(
   account: Account,
   amount: number,
@@ -43,7 +43,7 @@ export async function insertIntoCaspian(
       return await response.json();
     } else {
       const errorMessage = await response.text();
-      throw new Error(`Failed to send data to Caspian: ${errorMessage}`);
+      throw new Error(`${errorMessage}`);
     }
   } catch (error) {
     console.error("Request Error:", error);
