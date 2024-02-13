@@ -4,11 +4,11 @@ import { getDestinationAccount } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
 import { Account, FundedResponse } from "../types";
 import { fundingWallet } from "../wallet";
+import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
 import { getTicket } from "../ticket-queue";
 import rTracer from "cls-rtracer";
 import { incrementTxRequestCount, incrementTxCount } from "../index";
-import { insertIntoCaspian, insertIntoBigQuery } from "../logging";
 
 export default async function (req: Request, res: Response) {
   incrementTxRequestCount();
@@ -69,21 +69,15 @@ export default async function (req: Request, res: Response) {
     payment.DestinationTag = account.tag;
   }
 
+  let transactionHash = fundingWallet.sign(payment).hash;
   try {
     let result;
-    let paymentHash;
     try {
-      const signedPayment = await fundingWallet.sign(payment);
-      paymentHash = signedPayment.hash;
-      let response = await submitPaymentWithTicket(
-        payment,
-        client,
-        fundingWallet
-      );
-      ({ result, hash: paymentHash } = response);
+      result = await submitPaymentWithTicket(payment, client, fundingWallet);
+      transactionHash = result.hash;
     } catch (err) {
       console.log(
-        `${rTracer.id()} | Failed to submit payment ${paymentHash}: ${err}`
+        `${rTracer.id()} | Failed to submit payment ${transactionHash}: ${err}`
       );
       res.status(500).send({
         error: "Unable to fund account. Try again later",
@@ -93,12 +87,11 @@ export default async function (req: Request, res: Response) {
       return;
     }
 
-    const status = result.engine_result;
-
+    const status = result.result.engine_result;
     const response: FundedResponse = {
       account: account,
       amount: Number(amount),
-      paymentHash: paymentHash,
+      transactionHash: transactionHash,
     };
 
     if (wallet && wallet.seed) {
@@ -109,22 +102,9 @@ export default async function (req: Request, res: Response) {
       console.log(
         `${rTracer.id()} | Funded ${
           account.address
-        } with ${amount} XRP (${status}), paymentHash: ${paymentHash}`
+        } with ${amount} XRP (${status}), paymentHash: ${transactionHash}`
       );
 
-      if (config.CASPIAN_API_KEY) {
-        try {
-          await insertIntoCaspian(
-            account,
-            Number(amount),
-            req.body,
-            client.networkID
-          );
-          console.log("Data sent to Caspian successfully");
-        } catch (error) {
-          console.warn("Caspian Insertion Error:", error);
-        }
-      }
       if (config.BIGQUERY_PROJECT_ID) {
         try {
           await insertIntoBigQuery(account, amount, req.body);
@@ -146,6 +126,51 @@ export default async function (req: Request, res: Response) {
   }
 }
 
+async function insertIntoBigQuery(
+  account: Account,
+  amount: string,
+  reqBody: any
+): Promise<void> {
+  const { userAgent = "", usageContext = "" } = reqBody;
+  const memos = reqBody.memos
+    ? reqBody.memos.map((memo: any) => ({ memo }))
+    : [];
+  const rows = [
+    {
+      user_agent: userAgent,
+      usage_context: usageContext,
+      memos: memos,
+      account: account.xAddress,
+      amount: amount,
+    },
+  ];
+  const bigquery = new BigQuery({
+    projectId: config.BIGQUERY_PROJECT_ID,
+    credentials: {
+      client_email: config.BIGQUERY_CLIENT_EMAIL,
+      private_key: config.BIGQUERY_PRIVATE_KEY,
+    },
+  });
+
+  return new Promise((resolve, reject) => {
+    bigquery
+      .dataset(config.BIGQUERY_DATASET_ID)
+      .table(config.BIGQUERY_TABLE_ID)
+      .insert(rows, (error) => {
+        if (error) {
+          console.warn(
+            "WARNING: Failed to insert into BigQuery",
+            JSON.stringify(error, null, 2)
+          );
+          reject(error);
+        } else {
+          console.log(`Inserted ${rows.length} rows`);
+          resolve();
+        }
+      });
+  });
+}
+
 async function submitPaymentWithTicket(
   payment: Payment,
   client: Client,
@@ -159,19 +184,25 @@ async function submitPaymentWithTicket(
     payment.TicketSequence = await getTicket(client);
     payment = await client.autofill(payment);
     const { tx_blob: paymentBlob, hash: paymentHash } =
-      await fundingWallet.sign(payment);
+      fundingWallet.sign(payment);
     hash = paymentHash;
     result = (await client.submit(paymentBlob)).result;
     if (result.engine_result === "tefNO_TICKET") {
       retryCount++;
       console.log(`Retrying transaction ${hash} (${retryCount}/${maxRetries})`);
-    } else {
+    } else if (result.engine_result === "tesSUCCESS") {
       break;
+    } else {
+      throw new Error(
+        `Failed to submit transaction ${hash} with ticket, error code: ${result.engine_result}`
+      );
     }
   }
 
   if (retryCount >= maxRetries) {
-    throw new Error("Failed to submit transaction after multiple attempts");
+    throw new Error(
+      `Failed to submit transaction ${hash} with ticket after multiple attempts`
+    );
   }
 
   return { result, hash };
