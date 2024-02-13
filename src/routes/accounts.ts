@@ -4,11 +4,11 @@ import { getDestinationAccount } from "../destination-wallet";
 import { Client, Payment, Wallet, xrpToDrops } from "xrpl";
 import { Account, FundedResponse } from "../types";
 import { fundingWallet } from "../wallet";
-import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config";
 import { getTicket } from "../ticket-queue";
 import rTracer from "cls-rtracer";
 import { incrementTxRequestCount, incrementTxCount } from "../index";
+import { insertIntoCaspian, insertIntoBigQuery } from "../logging";
 
 export default async function (req: Request, res: Response) {
   incrementTxRequestCount();
@@ -75,7 +75,11 @@ export default async function (req: Request, res: Response) {
     try {
       result = await submitPaymentWithTicket(payment, client, fundingWallet);
       transactionHash = result.hash;
+      transactionHash = result.hash;
     } catch (err) {
+      console.log(
+        `${rTracer.id()} | Failed to submit payment ${transactionHash}: ${err}`
+      );
       console.log(
         `${rTracer.id()} | Failed to submit payment ${transactionHash}: ${err}`
       );
@@ -104,7 +108,19 @@ export default async function (req: Request, res: Response) {
           account.address
         } with ${amount} XRP (${status}), paymentHash: ${transactionHash}`
       );
-
+      if (config.CASPIAN_API_KEY) {
+        try {
+          await insertIntoCaspian(
+            account,
+            Number(amount),
+            req.body,
+            client.networkID
+          );
+          console.log("Data sent to Caspian successfully");
+        } catch (error) {
+          console.warn("Caspian Insertion Error:", error);
+        }
+      }
       if (config.BIGQUERY_PROJECT_ID) {
         try {
           await insertIntoBigQuery(account, amount, req.body);
@@ -113,7 +129,6 @@ export default async function (req: Request, res: Response) {
           console.warn(`Failed to insert into BigQuery: ${error}`);
         }
       }
-
       incrementTxCount();
       res.send(response);
     }
@@ -124,51 +139,6 @@ export default async function (req: Request, res: Response) {
       account,
     });
   }
-}
-
-async function insertIntoBigQuery(
-  account: Account,
-  amount: string,
-  reqBody: any
-): Promise<void> {
-  const { userAgent = "", usageContext = "" } = reqBody;
-  const memos = reqBody.memos
-    ? reqBody.memos.map((memo: any) => ({ memo }))
-    : [];
-  const rows = [
-    {
-      user_agent: userAgent,
-      usage_context: usageContext,
-      memos: memos,
-      account: account.xAddress,
-      amount: amount,
-    },
-  ];
-  const bigquery = new BigQuery({
-    projectId: config.BIGQUERY_PROJECT_ID,
-    credentials: {
-      client_email: config.BIGQUERY_CLIENT_EMAIL,
-      private_key: config.BIGQUERY_PRIVATE_KEY,
-    },
-  });
-
-  return new Promise((resolve, reject) => {
-    bigquery
-      .dataset(config.BIGQUERY_DATASET_ID)
-      .table(config.BIGQUERY_TABLE_ID)
-      .insert(rows, (error) => {
-        if (error) {
-          console.warn(
-            "WARNING: Failed to insert into BigQuery",
-            JSON.stringify(error, null, 2)
-          );
-          reject(error);
-        } else {
-          console.log(`Inserted ${rows.length} rows`);
-          resolve();
-        }
-      });
-  });
 }
 
 async function submitPaymentWithTicket(
