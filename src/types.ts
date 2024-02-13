@@ -7,6 +7,6 @@ export interface Account {
 export interface FundedResponse {
   account: Account;
   amount: number;
+  transactionHash: string;
   seed?: string;
-  paymentHash: string;
 }
