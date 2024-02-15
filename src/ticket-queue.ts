@@ -18,7 +18,7 @@ let createTicketsPromise: Promise<void | TxResponse<TicketCreate>> = null;
 export async function populateTicketQueue(client: Client) {
   // Get account info
   let marker = undefined;
-  const responses: AccountObjectsResponse[] = []
+  const responses: AccountObjectsResponse[] = [];
   do {
     const response: AccountObjectsResponse = await client.request({
       command: "account_objects",
@@ -27,10 +27,10 @@ export async function populateTicketQueue(client: Client) {
       limit: 300,
       marker,
     });
-    responses.push(response)
+    responses.push(response);
     marker = response.result.marker;
-  } while (Boolean(marker))
-  
+  } while (Boolean(marker));
+
   // Empty the ticket queue before refilling it
   ticketQueue = [];
 
