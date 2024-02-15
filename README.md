@@ -6,9 +6,25 @@ Funds new Testnet accounts
 
 ### Run the server:
 
+1. Add / update `.env` with the following values:
+
+```
+NODE_ENV="production"
+PORT=3000
+RIPPLED_URI="wss://s.altnet.rippletest.net:51233"
+FUNDING_ADDRESS=<address>
+FUNDING_SECRET=<secret>
+XRP_AMOUNT=10000
+```
+
+- For testing, create an account on testnet or use an existing one by updating `FUNDING_ADDRESS` and `FUNDING_SECRET`
+- For production testnet faucet, use the account with the address `rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe` and it's corresponding secret
+- Production environments should also configure either the BigQuery or Caspian environment variables as specified below
+
+2. Run the following commands:
+
 ```
 npm install
-NODE_ENV="production" PORT=3000 RIPPLED_URI="wss://s.altnet.rippletest.net:51233" FUNDING_ADDRESS=rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe FUNDING_SECRET=<secret> XRP_AMOUNT=10000
 npm start
 ```
 
@@ -66,4 +82,3 @@ Please replace `BIGQUERY_PROJECT_ID`, `BIGQUERY_CLIENT_EMAIL`, and `BIGQUERY_PRI
 - `BIGQUERY_PRIVATE_KEY`: The private key from your service account JSON key file. Be sure to include the full private key, including the header and footer.
 
 In case you are running this application in a trusted environment (like Google Cloud Platform), you don't need to provide the `BIGQUERY_CLIENT_EMAIL` and `BIGQUERY_PRIVATE_KEY`. The application will use Application Default Credentials (ADC) provided by the environment.
-
