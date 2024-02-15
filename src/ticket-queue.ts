@@ -17,12 +17,20 @@ let createTicketsPromise: Promise<void | TxResponse<TicketCreate>> = null;
 // this will be called when client is connected
 export async function populateTicketQueue(client: Client) {
   // Get account info
-  const responses: AccountObjectsResponse[] = await client.requestAll({
-    command: "account_objects",
-    account: fundingWallet.address,
-    type: "ticket",
-    limit: 300,
-  });
+  let marker = undefined;
+  const responses: AccountObjectsResponse[] = [];
+  do {
+    const response: AccountObjectsResponse = await client.request({
+      command: "account_objects",
+      account: fundingWallet.address,
+      type: "ticket",
+      limit: 300,
+      marker,
+    });
+    responses.push(response);
+    marker = response.result.marker;
+  } while (Boolean(marker));
+
   // Empty the ticket queue before refilling it
   ticketQueue = [];
 
