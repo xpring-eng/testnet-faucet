@@ -32,7 +32,7 @@ const required: (keyof ConfigFile)[] = ["RIPPLED_URI", "FUNDING_SECRET"];
 
 const defaults: Partial<Record<keyof Partial<ConfigFile>, any>> = {
   PORT: "3000",
-  XRP_AMOUNT: "1000",
+  XRP_AMOUNT: "100",
   MAX_AMOUNT: "1000",
   MIN_TICKET_COUNT: 100,
   MAX_TICKET_COUNT: 240,
