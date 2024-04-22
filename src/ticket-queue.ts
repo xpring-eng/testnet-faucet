@@ -91,7 +91,8 @@ export async function getTicket(client: Client) {
         createTicketsPromise = null;
       })
       .catch((error) => {
-        console.log(
+        createTicketsPromise = null;
+        console.error(
           `Failed to create tickets. Error: ${JSON.stringify(error)} Message: ${
             error?.message
           }`
